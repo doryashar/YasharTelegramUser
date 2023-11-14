@@ -1,5 +1,5 @@
 import importlib
-import bot
+import bot as bot
 import logging
 
 

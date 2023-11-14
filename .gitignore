@@ -1,7 +1,7 @@
 /.env
-/Yashar.session
-/Yashar.session-journal
-/__pycache__
-/run.log
-/channel-list copy.txt
+**/Yashar.session
+**/Yashar.session-journal
+**/__pycache__
+**/run.log
+**/channel-list copy.txt
 /venv

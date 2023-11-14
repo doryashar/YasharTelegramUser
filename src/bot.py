@@ -14,10 +14,10 @@ API_ID  = os.getenv('API_ID', None)
 API_KEY = os.getenv('API_KEY', None) 
 client = TelegramClient('Yashar', API_ID, API_KEY)
 
-with open('channel-list.txt', 'r') as fd:
+with open('db/channel-list.txt', 'r') as fd:
     channels_to_follow = [int(channel.strip()) for channel in fd.readlines()]
 
-with open('priority-list.txt', 'r') as fd:
+with open('db/priority-list.txt', 'r') as fd:
     priority_channels = [int(channel.strip()) for channel in fd.readlines()]
 
 latest_messages = []
