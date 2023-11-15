@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 
+import logging
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
 # Main
 from telethon import TelegramClient, events, sync
 from dotenv import load_dotenv
-import logging
 import os, re
 
 base_channel_name = 'YasharNews'
+control_channel_id = 2046544728
 
 # api_hash from https://my.telegram.org, under API Development.
 load_dotenv()
@@ -20,6 +28,9 @@ with open('db/channel-list.txt', 'r') as fd:
 with open('db/priority-list.txt', 'r') as fd:
     priority_channels = [int(channel.strip()) for channel in fd.readlines()]
 
+chat_signatures = {}
+ad_list = []
+global latest_messages
 latest_messages = []
         
 
@@ -46,32 +57,35 @@ async def join_channel(link_or_name_or_hash, is_hash=False):
 
 
 async def get_channel_list():
-    #TODO: list from file
-    # if not client:
-    #     with open('channel-list.txt', 'r') as fd:
-    #         return fd.read()
-    # else: 
         return {dialog.name: dialog.entity async for dialog in client.iter_dialogs() if dialog.is_group or dialog.is_channel}
             
 
 def is_priority(channel):
     return False
-def verify_not_duplicate(event):
-    latest_messages = latest_messages[:999] + event.message
-    return True
-def verify_not_ad(event):  
+
+def verify_not_duplicate(message):
+    global latest_messages
+    repeated_id_cond = message.id in [m.id for m in latest_messages]
+    if ((repeated_id_cond) or (False)):
+        logging.info('Found duplicate, ignoring')
+        return False
+    else:
+        # latest_messages.pop(0)
+        # latest_messages.append(message)
+        latest_messages = [*latest_messages[:999], message]
+        return True
+    
+def verify_not_ad(message):  
     return True
 
 def main():
     with client:
         dor = client.get_entity('dorito123')
-        # channel_list = await get_channel_list()
-        # base_channel = channel_list[base_channel_name]
         base_channel = client.get_entity('https://t.me/YasharN3ws')
-        client.send_message(dor, 'Hello, YASHAR is online!')
+        control_channel = client.get_entity(control_channel_id)
+        client.send_message(control_channel, "Hello, I'm back!")
         logging.info(client.get_me().stringify())
-        #    print(client.download_profile_photo('me'))
-            
+        logging.info(f'following: {channels_to_follow}')
         
         @client.on(events.NewMessage(chats=[2046544728], pattern='(?i)listchannels'))
         async def list_channels(event):
@@ -134,20 +148,36 @@ def main():
                 # updates = await leave_channel(channel)
                 rem_channel_to_follow(entityid)
                 await event.reply(f'OKAY!, unfollowing {channel}')
+            
+        @client.on(events.NewMessage(chats=[2046544728], pattern='(?i)latest_messages(.*)?'))
+        async def unfollowchannel(event):
+                count = event.pattern_match.groups()[0] or 0
+                take_msgs = latest_messages[-int(count):]
+                take_msgs = '\n\n'.join([f'{msg.id}) {msg.text}' for msg in take_msgs])
+                logging.info(take_msgs)
+                await event.reply(f'Latest messages:\n\n{take_msgs}')
                 
-
+        
+        def update_message(message):
+            message.text = f'{message.chat.title}:\n{message.text}'
+            return message 
+        
         @client.on(events.NewMessage(chats=channels_to_follow))
         async def handlefollowed(event):
-            channel = 'TODO'
-            if not is_priority(channel) and verify_not_duplicate(event) and verify_not_ad(event):
+            if not is_priority(event.chat) and verify_not_duplicate(event.message) and verify_not_ad(event.message):
                 logging.debug(f'Trying to forward message to {base_channel_name}({base_channel.id})')
-                await event.message.forward_to(base_channel)
+                msg = update_message(event.message)
+                await client.send_message(base_channel, msg)
+            else:
+                logging.info('Found duplicate, ignoring')
+                # await event.message.forward_to(base_channel)
                 # await client.send_read_acknowledge(event.chat, event.message)
+            
             
         @client.on(events.NewMessage(blacklist_chats=(channels_to_follow + [2046544728, dor.id])))
         async def handleany(event):
             # await event.message.forward_to(dor)
-            logging.info(event)
+            logging.debug(event)
                 
         client.run_until_disconnected()
 
@@ -167,3 +197,7 @@ def main():
 # @client.on(events.NewMessage(pattern='(?i)hi|hello'))
 # async def handler(event):
 #     await event.respond('Hey!')
+
+if __name__ == '__main__':
+    main()
+        
