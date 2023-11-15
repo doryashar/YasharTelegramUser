@@ -9,6 +9,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Main
+import copy
 from telethon import TelegramClient, events, sync
 from dotenv import load_dotenv
 import os, re
@@ -32,7 +33,43 @@ chat_signatures = {}
 ad_list = []
 global latest_messages
 latest_messages = []
-        
+global group_messages
+group_messages = dict()
+
+
+""" 
+    Find the stem (longest common substring) from a string array (arr)
+    The only modification is that the substring has to be in the edges of the strings and len(substring) > 5
+"""
+def findstem(arr):
+    # Determine size of the array
+    n = len(arr)
+    # Take first word from array
+    # as reference
+    s = arr[0]
+    l = len(s)
+    res = ""
+    imax = 0
+    for i in range(2):
+        for j in range(5, l + 1):
+            # generating all possible substrings
+            # of our reference string arr[0] i.e s
+            stem = s[:j]
+            k = 1
+            for k in range(1, n):
+                # Check if the generated stem is
+                # common to all words
+                if stem not in arr[k]:
+                    break
+            # If current substring is present in
+            # all strings and its length is greater
+            # than current result
+            if (k + 1 == n and len(res) < len(stem)):
+                res = stem
+                imax = i
+        s = s[::-1]
+    return res[::-1] if imax else res
+
 
 def rem_channel_to_follow(channel_id):
     channel_id = int(channel_id)
@@ -59,14 +96,27 @@ async def join_channel(link_or_name_or_hash, is_hash=False):
 async def get_channel_list():
         return {dialog.name: dialog.entity async for dialog in client.iter_dialogs() if dialog.is_group or dialog.is_channel}
             
-
 def is_priority(channel):
     return False
 
 def verify_not_duplicate(message):
     global latest_messages
     repeated_id_cond = message.id in [m.id for m in latest_messages]
-    if ((repeated_id_cond) or (False)):
+    msg_set = set(re.sub('[^A-Za-z0-9 אבגדהוזחטיכלמנסעפצקרךשתןףץם]]+', ' ', message.text).split())
+    word_sets = [re.sub('[^A-Za-z0-9 אבגדהוזחטיכלמנסעפצקרךשתןףץם]+', ' ', m.text).split() for m in latest_messages]
+    word_sets = [set(m) for m in word_sets]
+    
+    if len(msg_set) == 0 or len(word_sets) == 0:
+        latest_messages = [*latest_messages[:999], message]
+        return True
+    
+    repeated_unique_word_ratio = [len(msg_set.intersection(word))/min([len(word),len(msg_set)]) for word in word_sets]
+    repeated_unique_word_max_ratio_cond = max(repeated_unique_word_ratio) > 0.7
+    
+    top_3_msgs = sorted([(msg, repeated_unique_word_ratio[i]) for i, msg in enumerate(latest_messages)], key = lambda x: x[1], reverse=True)[:3]
+    repeated_unique_word_ratio_str = '\n'.join([f'{msg.text[:40]} => {i}' for i, msg in top_3_msgs])
+    logger.info(f'for {message.text[:40]}:\n{repeated_unique_word_ratio_str}\n\n')
+    if ((repeated_id_cond) or (repeated_unique_word_max_ratio_cond)):
         logging.info('Found duplicate, ignoring')
         return False
     else:
@@ -162,14 +212,32 @@ def main():
             message.text = f'{message.chat.title}:\n{message.text}'
             return message 
         
+        def remove_signature(event):
+            global group_messages
+            orig_msg = event.message.text
+            chat_sig_dict = group_messages.get(event.chat.id, {'latest_messages' : [], 'signatures': []})
+            chat_sig_dict['latest_messages'] = [*chat_sig_dict['latest_messages'][-5:], orig_msg]
+            for signature in chat_sig_dict['signatures']:
+                event.message.text = event.message.text.replace(signature, '')
+            if len(chat_sig_dict['signatures']) == 0 or orig_msg == event.message.text:
+                signature = findstem(chat_sig_dict['latest_messages'])
+                if signature:
+                    logger.info(f'Found new signature {signature}')
+                    chat_sig_dict['signatures'].append(signature)
+                    event.message.text = event.message.text.replace(signature, '')
+            group_messages[event.chat.id] = chat_sig_dict
+            return event.message 
+        
         @client.on(events.NewMessage(chats=channels_to_follow))
         async def handlefollowed(event):
-            if not is_priority(event.chat) and verify_not_duplicate(event.message) and verify_not_ad(event.message):
+            msg = remove_signature(event)
+            msg = copy.copy(event.message)
+            if is_priority(event.chat) or (verify_not_duplicate(msg) and verify_not_ad(msg)):
                 logging.debug(f'Trying to forward message to {base_channel_name}({base_channel.id})')
-                msg = update_message(event.message)
+                msg = update_message(msg)
                 await client.send_message(base_channel, msg)
             else:
-                logging.info('Found duplicate, ignoring')
+                logging.info(f'Found duplicate, ignoring\n{msg.text}')
                 # await event.message.forward_to(base_channel)
                 # await client.send_read_acknowledge(event.chat, event.message)
             
@@ -201,3 +269,18 @@ def main():
 if __name__ == '__main__':
     main()
         
+
+
+# a = 'עדכון לצפון - רחפן 1 הופל. נוסף התפוצץ. פרטים נוספים בהמשך בהודעת צה"ל'
+# b = 'ynet חדשות:\n"עוד נבכה ונתאבל, כרגע צריך לתת שקט לגזרה": הלוחמים שמגינים על גבול הצפון'
+# c = 'ביטחון שוטף:\nתקרית חריגה בגדר הגבול בעזה: מחבלים ירו טיל נ״ט לעבר דחפור D-9 של צה״ל שהיה בשטח ישראל, סמוך לגדר באזור כיסופים. שני לוחמי צה״ל נפצעו באורח קשה ובאורח קל. משפחותיהם עודכנו.\nדורון קדוש'
+# d = '📌ערוץ החדשות 8200:\nמשרד הבריאות בעזה: "הכוחות נמצאים בקומות התת קרקעיות של בית החולים שיפאא\'"'
+# e = 'חדשות ישראל בטלגרם:\n**עדכון לצפון - רחפן 1 הופל. נוסף התפוצץ. פרטים נוספים בהמשך בהודעת צה"ל**'
+# f = '"ערוץ הטלגרם חפ"ק מרחב ארצי" 24/7 דיווחים ביטחוניים בזמן אמת:\nטקס סיום קבלת כומתה של בא"ח צנחנים ברצועת עזה . \n\nhttps://t.me/hapaklive'
+# g = 'ביטחון שוטף:\nהאם הסעודים מכינים את עצמם על השתלטות על רצועת עזה ביום שאחרי?\n\nמטוס סיוע שביעי המריא מסעודיה למצרים, עמוס בטונות של ציוד הומניטרי'
+# h = 'ביטחון שוטף:\n'
+# i = 'חדשות בזמן בטלגרם - קבוצת החדשות הגדולה בישראל:\nטיל נ״ט שוגר לעבר כלי הנדסי D-9 באזור כיסופים.\n\nשני לוחמים נפצעו באורח קשה וקל.\nמשפחתם עודכנה.\n\n https://t.me/newss'
+# j = 'ביטחון שוטף:\n20 שיגורים נורו לעבר הגליל העליון בדקות האחרונות'
+
+# print([(jellyfish.levenshtein_distance(s, a), jellyfish.jaro_similarity(s, a), jellyfish.damerau_levenshtein_distance(s, a)) for s in [b, c, d, e, f, g, h ,i ,j]])
+    
