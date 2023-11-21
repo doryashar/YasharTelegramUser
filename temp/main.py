@@ -16,15 +16,31 @@ import bot as bot
 '''
 Done:
 +) Git and Dockerize
++) Dont forward but send as message, remove signature and add mine.
 +) filter similar messages:
     - keep last 1000 messages in array
     - filter out each signature
     - set of unique words
     - Similarity matching - intersection of all the sets in the array divided by length of shortest set > 70%
 +) Signature finding mechanism
++) Remove ads 
+    -) admin can add: "add-regex-for-ads"
+    -) if admin removes a message, it wont show up again. activated by switch command, mark by:
+            *) message text if there are more than 10 words
+            *) images (TBD)
 
 Tasks:
-+) Periodic send message every 5 seconds containing all relevant aggregated messages
++) Handle images in ads, duplicate messages
++) handle edits
++) Forward/Discard forwarded
++) Each channel should have it's details (username, title, link etc) and add:
+    *) a custom alias to show.
+    *) Follow to:
+    
++) Edits should be propagates
++) Albums should be handled
++) Add configuration
++) Periodic send message every X seconds containing all relevant aggregated messages
 +) Prioritize the aggregated messages by chat priority
 +) Prioritize the aggregated messages by AI output
 +) Add sources and remove middle-man groups (or lower their priority)
@@ -33,11 +49,7 @@ Tasks:
 +) All channels should be Jsonable Objects (with priority, name, id, link etc) and so does channel-list.txt -> channel_list.json
 +) Translate to Hebrew.
 +) Semantic similarity
-+) Dont forward but send as message, remove signature and add mine.
 +) AI if important
-+) Remove ads 
-    -) admin can add: "add-regex-for-ads"
-    -) if admin removes a message, it wont show up again.
 +) different channel groups - follow TO channel group.
 +) Add logo
 +) Multiple bots working together (Bot swarn)
