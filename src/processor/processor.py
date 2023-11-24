@@ -19,6 +19,7 @@ import telethon
 from dotenv import load_dotenv
 import os
 import random
+# from ..config import cfg
     
 ## =================================================================
 # Load Configurations:
@@ -35,8 +36,10 @@ PRODUCE_TOPIC = os.getenv('BROADCAST_TOPIC', 'broadcasting')
 
 MYNAME = f'PROCESSOR_{random.randint(1,1000)}'
 GROUP_ID = os.getenv('GROUP_ID', f'{MYNAME}_TBOT')
-#
-#TODO: Add configuration object
+
+#TODO: Fix config module
+with open('db/config.json', 'r') as fd:
+    cfg = json.load(fd)
 
 ## =================================================================
 
@@ -69,7 +72,6 @@ def process(msg):
     Where the Magic happens
     """
     
-    
     #TODO: move to common_funcs
     class tmsg():
         def __init__(self, *args):
@@ -92,6 +94,9 @@ def process(msg):
         smsg = BinaryReader(tbytes).tgread_object()
         logger.info(smsg.to_dict())
         
+        if cfg.get('add_channel_alias', True):
+            smsg.text = f'{smsg.chat.title}:\n{smsg.text}'
+            
         msg.value =  smsg, file
         return msg
     
@@ -118,22 +123,3 @@ while True:
 
 producer.send(CONTROL_TOPIC, {MYNAME : 'going offline'})
 
-
-
-# @bot.on(events.NewMessage(pattern='/start'))
-# async def start(event):
-#     """Send a message when the command /start is issued."""
-#     await event.respond('Hi!')
-#     raise events.StopPropagation
-
-# @bot.on(events.NewMessage)
-# async def echo(event):
-#     """Echo the user message."""
-#     await event.respond(event.text)
-
-# def main():
-#     """Start the bot."""
-    # bot.run_until_disconnected()
-
-# if __name__ == '__main__':
-#     main()

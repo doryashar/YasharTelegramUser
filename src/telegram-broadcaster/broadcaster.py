@@ -22,8 +22,8 @@ import os
 import random
     
 ## =================================================================
-
 # Load Configurations:
+
 load_dotenv()
 API_ID  = os.getenv('API_ID', None) 
 API_KEY = os.getenv('API_KEY', None)  # api_hash from https://my.telegram.org, under API Development.
@@ -37,7 +37,9 @@ PRODUCE_TOPIC = os.getenv('BROADCAST_TOPIC', 'broadcasting')
 MYNAME = f'BROADCASTER_{random.randint(1,1000)}'
 GROUP_ID = os.getenv('GROUP_ID', f'{MYNAME}_TBOT')
 
-#TODO: config object?
+#TODO: Fix config module
+with open('db/config.json', 'r') as fd:
+    cfg = json.load(fd)
 
 ## =================================================================
 
@@ -86,22 +88,6 @@ asyncio.run(run_bot())
 
 producer.send(CONTROL_TOPIC, {MYNAME : 'going offline'})
 
-
-
-# @bot.on(events.NewMessage(pattern='/start'))
-# async def start(event):
-#     """Send a message when the command /start is issued."""
-#     await event.respond('Hi!')
-#     raise events.StopPropagation
-
-# @bot.on(events.NewMessage)
-# async def echo(event):
-#     """Echo the user message."""
-#     await event.respond(event.text)
-
-# def main():
-#     """Start the bot."""
-    # bot.run_until_disconnected()
 
 # if __name__ == '__main__':
 #     main()
