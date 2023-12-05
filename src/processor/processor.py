@@ -7,6 +7,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+logger.info(f'Got logger {__name__}')
 
 ## =================================================================
 
@@ -19,6 +20,8 @@ import telethon
 from dotenv import load_dotenv
 import os
 import random
+from datetime import datetime
+from .helper_functions import remove_links, remove_ads, remove_duplicates, remove_regexs
 # from ..config import cfg
     
 ## =================================================================
@@ -34,7 +37,7 @@ GATHERING_TOPIC = os.getenv('GATHERING_TOPIC', 'gathering')
 CONTROL_TOPIC = os.getenv('CONTROL_TOPIC', 'control')
 PRODUCE_TOPIC = os.getenv('BROADCAST_TOPIC', 'broadcasting')
 
-MYNAME = f'PROCESSOR_{random.randint(1,1000)}'
+MYNAME = f'PROCESSOR'#_{random.randint(1,1000)}'
 GROUP_ID = os.getenv('GROUP_ID', f'{MYNAME}_TBOT')
 
 #TODO: Fix config module
@@ -63,41 +66,60 @@ consumer = KafkaConsumer(GATHERING_TOPIC, bootstrap_servers=KAFKA_SERVER,
                          group_id=GROUP_ID,                         
                          )
 # consumer.assign([TopicPartition('foobar', 2)]) # Manually assign partition list
-# consumer.subscribe(['msgpackfoo'])
+consumer.subscribe([CONTROL_TOPIC, GATHERING_TOPIC, PRODUCE_TOPIC])
 
 ## =================================================================
-
+def handle_gathering_msg(in_msg):
+        out_msg = process(in_msg)
+        if out_msg:
+            producer.send(PRODUCE_TOPIC, **out_msg)
+            producer.flush()
+        else:
+            logger.info(f'Ignoring {in_msg}')
+            
 def process(msg):
     """ 
     Where the Magic happens
     """
-    
-    #TODO: move to common_funcs
-    class tmsg():
-        def __init__(self, *args):
-            if len(args) == 1: # ConsumerRecord:
-                for i, item in enumerate(["topic", "partition", "offset", "timestamp", "timestamp_type", "key", "value", "headers", "checksum", "serialized_key_size", "serialized_value_size", "serialized_header_size"]):
-                    setattr(self, item, args[0][i])
-            else:
-                pass
-                #TODO: complete if you want
-    
-    # Parse the incoming msg
+
     try:
-        msg = tmsg(msg) #Convert to class object
-        tbytes = msg.value['tbytes']
-        file = msg.value['file']
-        # import telethon
-        # m = telethon.tl.patched.Message.from_reader(value)
+        msg = msg._asdict() #Convert to class object
+        rmsg = msg['value']                
         
-        from telethon.extensions import BinaryReader
-        smsg = BinaryReader(tbytes).tgread_object()
-        logger.info(smsg.to_dict())
-        
-        if cfg.get('add_channel_alias', True):
-            smsg.text = f'{smsg.chat.title}:\n{smsg.text}'
+        if cfg.get('remove_regexs_from_file', True):
+            regexes = None
+            if not remove_regexs(rmsg, regexes):
+                logger.info(f'Found regex match')
+                return False
             
-        msg.value =  smsg, file
+        if cfg.get('remove_ads', True):
+            if not remove_ads(rmsg):
+                logger.info(f'Found ad')
+                return False
+        
+        if cfg.get('remove_links', True):
+            rmsg['message'] = remove_links(rmsg['message'])
+                
+        if cfg.get('remove_duplicates', True):
+            if not remove_duplicates(rmsg, latest_messages=latest_messages):
+                logger.info(f'Found duplicate')
+                return False
+            
+        if cfg.get('add_channel_alias', True):
+            rmsg['message'] = f"{rmsg['from']['chat_title']}:\n{rmsg['message']}"
+        
+        
+        for i in ['topic', 'offset', 'timestamp', 'timestamp_type' ,'checksum', 'serialized_key_size', 'serialized_value_size', 'serialized_header_size']:
+            del msg[i]
+            
+        rmsg['time'] = datetime.now()
+        msg['value'] =  rmsg
+        msg_id = random.randint(0,999999)
+        new_key = f"{msg['key'].decode()}_{msg_id}"
+        msg['key'] = new_key.encode()
+        
+        to_str = {k:v for k,v in rmsg.items() if k != 'files'}
+        logger.info(f'Sending msg:\n{to_str}')
         return msg
     
     except Exception as exp:
@@ -105,21 +127,38 @@ def process(msg):
         return False
 
 ## =================================================================
+def handle_control_msg(in_msg): pass #TODO
+latest_messages = []
+def handle_produce_msg(in_msg): 
+    latest_messages.append(in_msg)
+    if len(latest_messages) > cfg.get('max_latest_messages', 1000):
+        latest_messages.pop(0)
+## =================================================================
 
-logger.info("Start listening to MESSAGES")
-while True:
+def main():
+    logger.info("Start listening to MESSAGES")
+    num_sent_messages = 0
+    num_ignored_messages = 0
+
     for in_msg in consumer:
-        logger.info(in_msg)
-        out_msg = process(in_msg)
-        if out_msg:
-            producer.send(PRODUCE_TOPIC, out_msg.value, key=out_msg.key, headers=out_msg.headers, partition=out_msg.partition)
-            producer.flush()
+            if in_msg.topic == CONTROL_TOPIC:
+                handle_control_msg(in_msg)
+            
+            elif in_msg.topic == GATHERING_TOPIC:
+                handle_gathering_msg(in_msg)
+            
+            elif in_msg.topic == PRODUCE_TOPIC:
+                handle_produce_msg(in_msg)
+            
+            else:
+                logging.error(f'Got unkown msg topic: {in_msg}')
+                
     logger.warning('Stopped for some reason')
-    
-# metrics = consumer.metrics(), producer.metrics()
-# print(metrics)
+    producer.send(CONTROL_TOPIC, {MYNAME : 'going offline'})
 
 ## =================================================================
 
-producer.send(CONTROL_TOPIC, {MYNAME : 'going offline'})
-
+if __name__ == '__main__':
+    main()
+    # metrics = consumer.metrics(), producer.metrics()
+    # print(metrics)

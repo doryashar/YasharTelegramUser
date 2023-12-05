@@ -4,4 +4,6 @@
 **/__pycache__
 **/run.log
 **/channel-list copy.txt
+/temp
 /venv
+/.gitignore

@@ -9,9 +9,15 @@ logging.basicConfig(
     filename='run.log'
 )
 logger = logging.getLogger(__name__)
+logger.info(f'Got logger {__name__}')
 
 import importlib
-import bot as bot
+import threading
+
+from telegram_gatherer import gatherer
+from processor import processor
+from telegram_broadcaster import broadcaster
+
 
 '''
 Done:
@@ -57,7 +63,10 @@ Tasks:
 '''
 
 if __name__ == '__main__':
-    while True:
-        bot.main()
-        logger.info('Reloading bot')
-        importlib.reload(bot)
+    # while True:
+        threading.Thread(target=gatherer.main).start() 
+        threading.Thread(target=processor.main).start() 
+        threading.Thread(target=broadcaster.main).start() 
+        print('Started')
+        # logger.info('Reloading bot')
+        # importlib.reload(bot)

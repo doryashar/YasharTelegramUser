@@ -1,5 +1,14 @@
 version: '2'
 services:
+
+  telegram-gatherer:
+    depends_on:
+      - kafka
+    build: ./src/telegram_gatherer/
+
+  # processor:
+  # telegram-broadcaster:
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
