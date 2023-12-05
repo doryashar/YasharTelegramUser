@@ -32,7 +32,7 @@ API_ID  = os.getenv('API_ID', None)
 API_KEY = os.getenv('API_KEY', None)  # api_hash from https://my.telegram.org, under API Development.
 BOT_API_TOKEN = os.getenv('BOT_API_TOKEN')
 
-KAFKA_SERVER = os.getenv('KAFKA_SERVER',  'localhost:29092')
+KAFKA_SERVER = os.getenv('KAFKA_SERVER', 'localhost:29092')
 GATHERING_TOPIC = os.getenv('GATHERING_TOPIC', 'gathering')
 CONTROL_TOPIC = os.getenv('CONTROL_TOPIC', 'control')
 PRODUCE_TOPIC = os.getenv('BROADCAST_TOPIC', 'broadcasting')
@@ -111,7 +111,7 @@ async def get_files(smsg):
         
 ## =================================================================
         
-async def run_bot():    
+async def run_bot(event=None):    
     global bot
     bot = TelegramClient('bot', API_ID, API_KEY)
     await bot.start(bot_token=BOT_API_TOKEN)
@@ -121,6 +121,9 @@ async def run_bot():
 
     logger.info("Start listening to MESSAGES")
     for msg in consumer:
+            if event and event.is_set():
+                break
+            
             smsg = msg.value
             # logger.info(f'\nNEW: {smsg}\n')
             # logger.info(f'got message:\n{smsg.__dict__}')
@@ -129,6 +132,10 @@ async def run_bot():
             if not isinstance(smsg, dict) or now - smsg.get('time', now + timedelta(hours=2)) > timedelta(hours = 1):
                 logger.info(f'Old message was received, ignoring')
                 continue 
+            elif smsg['message'].startswith('YasharNews:'):
+                logger.info(f'YasharNews message was received, ignoring')
+                continue 
+                
             
             if smsg['files']:
                 logger.info('Has file/s. uploading them.')
@@ -140,8 +147,11 @@ async def run_bot():
                 continue
             
             try:
-                message = smsg.get('message', '')[:1000] if not isinstance(smsg.get('file', None), list) else [f['caption'][:1000] for f in smsg['files']]#len(smsg.get('file', [])) < 2  else [f['caption'] for f in smsg['files']]
                 #TODO: send 2 messages if len > 1000
+                message = smsg.get('message', '')[:1000] 
+                if not message and  isinstance(smsg.get('file', None), list):
+                    message = [f['caption'][:1000] for f in smsg['files'] if f['caption']]
+                
             except Exception as exp:
                 logger.error(f'message error: {exp}\n', exc_info=True)
                 continue
@@ -171,17 +181,17 @@ async def run_bot():
             #TODO: update (Broadcast) the sent message id so we can later edit, remove and reply to it
             
             await asyncio.sleep(4)
-            
+     
     logger.warning('Stopped for some reason')
     producer.send(CONTROL_TOPIC, {MYNAME : 'going offline'})
 
 ## =================================================================
 
-def main():
+def main(event=None):
     # metrics = consumer.metrics()
     # print(metrics)
-    asyncio.run(run_bot())
-
-
+    asyncio.run(run_bot(event))
+    if event:
+        event.set()
 if __name__ == '__main__':
     main()

@@ -11,10 +11,12 @@ WORKDIR /app
 RUN pip install -r requirements.txt
 
 # copy every content from the local file to the image
-COPY . /app
+COPY ./src /app/src
+COPY ./db /app/db
+COPY .env *.session ./
 
 # RUN pip install requests beautifulsoup4 python-dotenv
 ENTRYPOINT [ "python" ]
-CMD [ "./src/main.py" ]
+CMD [ "./src/main.py" ,"telegram_gatherer", "processor", "telegram_broadcaster"]
 # CMD [“python3”, “./main.py”] 
 # CMD [ "find" ]

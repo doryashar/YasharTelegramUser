@@ -21,7 +21,8 @@ from dotenv import load_dotenv
 import os
 import random
 from datetime import datetime
-from .helper_functions import remove_links, remove_ads, remove_duplicates, remove_regexs
+from .helper_functions import remove_links, remove_ads, remove_duplicates, remove_regexs, remove_signatures
+from common_funcs import handle_control_msg
 # from ..config import cfg
     
 ## =================================================================
@@ -32,7 +33,7 @@ load_dotenv()
 # API_KEY = os.getenv('API_KEY', None)  # api_hash from https://my.telegram.org, under API Development.
 # BOT_API_TOKEN = os.getenv('BOT_API_TOKEN')
 
-KAFKA_SERVER = os.getenv('KAFKA_SERVER',  'localhost:29092')
+KAFKA_SERVER = os.getenv('KAFKA_SERVER', 'localhost:29092')
 GATHERING_TOPIC = os.getenv('GATHERING_TOPIC', 'gathering')
 CONTROL_TOPIC = os.getenv('CONTROL_TOPIC', 'control')
 PRODUCE_TOPIC = os.getenv('BROADCAST_TOPIC', 'broadcasting')
@@ -75,7 +76,7 @@ def handle_gathering_msg(in_msg):
             producer.send(PRODUCE_TOPIC, **out_msg)
             producer.flush()
         else:
-            logger.info(f'Ignoring {in_msg}')
+            logger.info(f'Ignoring {in_msg.value["message"]}')
             
 def process(msg):
     """ 
@@ -96,7 +97,12 @@ def process(msg):
             if not remove_ads(rmsg):
                 logger.info(f'Found ad')
                 return False
-        
+            
+        if cfg.get('remove_signatures', True):
+            if not remove_signatures(rmsg):
+                logger.info(f'Found signatures')
+                return False
+                    
         if cfg.get('remove_links', True):
             rmsg['message'] = remove_links(rmsg['message'])
                 
@@ -127,7 +133,6 @@ def process(msg):
         return False
 
 ## =================================================================
-def handle_control_msg(in_msg): pass #TODO
 latest_messages = []
 def handle_produce_msg(in_msg): 
     latest_messages.append(in_msg)
@@ -135,27 +140,33 @@ def handle_produce_msg(in_msg):
         latest_messages.pop(0)
 ## =================================================================
 
-def main():
+def main(event=None):
     logger.info("Start listening to MESSAGES")
     num_sent_messages = 0
     num_ignored_messages = 0
 
     for in_msg in consumer:
-            if in_msg.topic == CONTROL_TOPIC:
-                handle_control_msg(in_msg)
-            
-            elif in_msg.topic == GATHERING_TOPIC:
-                handle_gathering_msg(in_msg)
-            
-            elif in_msg.topic == PRODUCE_TOPIC:
-                handle_produce_msg(in_msg)
-            
-            else:
-                logging.error(f'Got unkown msg topic: {in_msg}')
+        if event and event.is_set():
+            break
+        
+        if in_msg.topic == CONTROL_TOPIC:
+            handle_control_msg(in_msg)
+        
+        elif in_msg.topic == GATHERING_TOPIC:
+            handle_gathering_msg(in_msg)
+        
+        elif in_msg.topic == PRODUCE_TOPIC:
+            handle_produce_msg(in_msg)
+        
+        else:
+            logging.error(f'Got unkown msg topic: {in_msg}')
                 
     logger.warning('Stopped for some reason')
     producer.send(CONTROL_TOPIC, {MYNAME : 'going offline'})
 
+    if event:
+        event.set()
+        
 ## =================================================================
 
 if __name__ == '__main__':

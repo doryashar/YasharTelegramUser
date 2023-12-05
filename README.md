@@ -11,8 +11,11 @@
 - monitor the instances. 
 
 <!-- ## To run:
+docker compose up --build --abort-on-container-exit
+Or (without kafka)
 docker build -t yasharnews .
-docker run yasharnews -->
+docker run yasharnews 
+-->
 
 
 

@@ -6,46 +6,38 @@ import logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
     level=logging.INFO,
-    filename='run.log'
 )
 logger = logging.getLogger(__name__)
 logger.info(f'Got logger {__name__}')
 
 import importlib
 import threading
-
-from telegram_gatherer import gatherer
-from processor import processor
-from telegram_broadcaster import broadcaster
-
+import os, sys
+import time
 
 '''
-Done:
-+) Git and Dockerize
-+) Dont forward but send as message, remove signature and add mine.
++) Signature finding and removing mechanism
++) Each channel should have it's own dict with signature, alias, priority, link, title, type  and where to send
+
 +) filter similar messages:
-    - keep last 1000 messages in array
-    - filter out each signature
-    - set of unique words
     - Similarity matching - intersection of all the sets in the array divided by length of shortest set > 70%
-+) Signature finding mechanism
 +) Remove ads 
     -) admin can add: "add-regex-for-ads"
     -) if admin removes a message, it wont show up again. activated by switch command, mark by:
             *) message text if there are more than 10 words
             *) images (TBD)
 
-Tasks:
-+) Handle images in ads, duplicate messages
-+) handle edits
-+) Forward/Discard forwarded
-+) Each channel should have it's details (username, title, link etc) and add:
-    *) a custom alias to show.
-    *) Follow to:
++) handle edits/removes/replies and propagate
+
++) Add controller bot that listen to requests on a channel and spread through control topic:
+    -) update
+    -) disconnect
+    -) configuration update
+    -) add/remove channel to follow 
+    +) it should verify all are online
+    +) whenever exception is raised, it should be written to the channel
+    +) Advertise removal confirmation
     
-+) Edits should be propagates
-+) Albums should be handled
-+) Add configuration
 +) Periodic send message every X seconds containing all relevant aggregated messages
 +) Prioritize the aggregated messages by chat priority
 +) Prioritize the aggregated messages by AI output
@@ -54,7 +46,6 @@ Tasks:
 +) counter of interesting channels
 +) All channels should be Jsonable Objects (with priority, name, id, link etc) and so does channel-list.txt -> channel_list.json
 +) Translate to Hebrew.
-+) Semantic similarity
 +) AI if important
 +) different channel groups - follow TO channel group.
 +) Add logo
@@ -63,10 +54,44 @@ Tasks:
 '''
 
 if __name__ == '__main__':
-    # while True:
-        threading.Thread(target=gatherer.main).start() 
-        threading.Thread(target=processor.main).start() 
-        threading.Thread(target=broadcaster.main).start() 
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
+        level=logging.INFO,
+        filename='run.log'
+    )
+    
+    logger.info('Now waiting for Kafka to be up and loaded')
+    time.sleep(5)
+    
+    
+    from telegram_gatherer import gatherer as telegram_gatherer
+    from processor import processor
+    from telegram_broadcaster import broadcaster as telegram_broadcaster
+    if os.environ['DEBUG_MODE'] == '1':
+        sys.argv.extend(['telegram_gatherer', 'processor', 'telegram_broadcaster'])
+    
+    while True:
+        event = threading.Event()
+        workers = []
+        if 'telegram_gatherer' in sys.argv:
+            worker = threading.Thread(target=telegram_gatherer.main, args=(event,))
+            worker.start() 
+            workers.append(worker)
+        if 'processor' in sys.argv:
+            worker = threading.Thread(target=processor.main, args=(event,))
+            worker.start() 
+            workers.append(worker)
+        if 'telegram_broadcaster' in sys.argv:
+            worker = threading.Thread(target=telegram_broadcaster.main, args=(event,))
+            worker.start() 
+            workers.append(worker)
+        
         print('Started')
-        # logger.info('Reloading bot')
-        # importlib.reload(bot)
+        event.wait()
+        for worker in workers:
+            worker.join()
+        importlib.reload(telegram_gatherer)
+        importlib.reload(processor)
+        importlib.reload(telegram_broadcaster)
+        event.clear()
+        logger.info('Reloading')

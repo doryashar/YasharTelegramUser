@@ -29,18 +29,21 @@ def verify_model(model_name):
 # for model_name in models:   
 #     verify_model(model_name)
 
-def text_similarity_check(text_to_match, compare_list, threshold=100):
+def text_similarity_check(text_to_match, compare_list, threshold=15):
+    if len(compare_list) == 0:
+        return False
     model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
     model = SentenceTransformer(model_name, device="cpu")
     query_embedding = model.encode(text_to_match)
     passage_embedding = model.encode(compare_list)
     
-    scores = util.dot_score(query_embedding, passage_embedding)
+    scores = util.dot_score(query_embedding, passage_embedding)[0].tolist()
     idx_text_score_list = [(i, compare_list[i], score) for i, score in enumerate(scores)]
     #TODO: take the max and compare to threshold
-    top_text_with_scores = idx_text_score_list.sort(key=lambda x: x[2])[:5]
-    max_score = 0
-    print('\n'.join(top_text_with_scores))
+    idx_text_score_list.sort(key=lambda x: x[2],reverse=True)
+    top_text_with_scores = idx_text_score_list[0]
+    print(f"text_to_match:\n\t {text_to_match[::-1]}\ntop_text_with_scores:\n\t {top_text_with_scores[1][::-1]}, \nscore: {top_text_with_scores[2]}")
+    max_score = idx_text_score_list[0][2]
     return max_score > threshold
     
 

@@ -34,12 +34,10 @@ from .gatherer_funcs import join_channels, parse_telegram_msg
 # Load Configurations:
 
 load_dotenv()
-API_ID_DOR  = os.getenv('API_ID_DOR', None) 
-API_KEY_DOR = os.getenv('API_KEY_DOR', None)
-API_ID  = os.getenv('API_ID', None) 
-API_KEY = os.getenv('API_KEY', None)  # api_hash from https://my.telegram.org, under API Development.
+API_ID  = os.getenv('API_ID') 
+API_KEY = os.getenv('API_KEY')  # api_hash from https://my.telegram.org, under API Development.
 
-KAFKA_SERVER = os.getenv('KAFKA_SERVER',  'localhost:29092')
+KAFKA_SERVER = os.getenv('KAFKA_SERVER', 'localhost:29092')
 GATHERING_TOPIC = os.getenv('GATHERING_TOPIC', 'gathering')
 CONTROL_TOPIC = os.getenv('CONTROL_TOPIC', 'control')
 PRODUCE_TOPIC = os.getenv('BROADCAST_TOPIC', 'broadcasting')
@@ -58,7 +56,8 @@ with open('db/config.json', 'r') as fd:
 
 # Load Kafka producer
 from kafka import KafkaProducer
-producer = KafkaProducer(bootstrap_servers=KAFKA_SERVER, 
+producer = KafkaProducer(bootstrap_servers=[KAFKA_SERVER], 
+                         client_id=MYNAME, 
                          value_serializer=lambda v: pickle.dumps(v), 
                         #  value_serializer=lambda v: json.dumps(v).encode('utf-8'), 
                          key_serializer=lambda v: str.encode(v) if v is not None else None)
@@ -146,8 +145,10 @@ async def run():
 
 
 ## =================================================================
-def main():
+def main(event=None):
     asyncio.run(run())
+    if event:
+        event.set()
 
 if __name__ == '__main__':
     main()

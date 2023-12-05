@@ -4,19 +4,30 @@ import os
 import numpy as np
 from skimage import metrics
 
-def structural_similarity(image1, image2):
+def structural_similarity(image1, image2, threshold=0.9):
     
-    if os.path.exists(image1):
-        image1 = cv2.imread(image1)
-    else: #TODO: if isinstance(image1, bytes)
+    if isinstance(image2, list):
+        image_list = image2
+        for i in image_list:
+            if structural_similarity(image1, i):
+                return True
+        return False
+    
+    if isinstance(image1, bytes):
         jpg_as_np = np.frombuffer(image1, dtype=np.uint8)
         image1 = cv2.imdecode(jpg_as_np, flags=1)
+    elif os.path.exists(image1):
+        image1 = cv2.imread(image1)
+    else: 
+        return False
     
-    if os.path.exists(image2):
-        image2 = cv2.imread(image2)
-    else: #TODO: if isinstance(image1, bytes)
+    if isinstance(image2, bytes):
         jpg_as_np = np.frombuffer(image2, dtype=np.uint8)
         image2 = cv2.imdecode(jpg_as_np, flags=1)
+    elif os.path.exists(image2):
+        image2 = cv2.imread(image2)
+    else: 
+        return False
     
     image2 = cv2.resize(image2, (image1.shape[1], image1.shape[0]), interpolation = cv2.INTER_AREA)
     # print(image1.shape, image2.shape)
@@ -25,7 +36,7 @@ def structural_similarity(image1, image2):
     image2_gray = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
     # Calculate SSIM
     ssim_score = metrics.structural_similarity(image1_gray, image2_gray, full=True)
-    return round(ssim_score[0], 2)
+    return round(ssim_score[0], 2) > threshold
 
 # for first in [112]:
 #     for second in range(6):
