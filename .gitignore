@@ -1,4 +1,5 @@
 /.env
+**/*.session
 **/Yashar.session
 **/Yashar.session-journal
 **/__pycache__
