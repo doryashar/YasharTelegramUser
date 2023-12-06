@@ -31,7 +31,9 @@ def verify_model(model_name):
 
 def text_similarity_check(text_to_match, compare_list, threshold=15):
     if len(compare_list) == 0:
-        return False
+      return False
+    if len(text_to_match) == 0:
+      return False
     model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
     model = SentenceTransformer(model_name, device="cpu")
     query_embedding = model.encode(text_to_match)
