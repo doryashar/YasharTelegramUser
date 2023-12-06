@@ -67,7 +67,7 @@ if __name__ == '__main__':
     from telegram_gatherer import gatherer as telegram_gatherer
     from processor import processor
     from telegram_broadcaster import broadcaster as telegram_broadcaster
-    if os.environ['DEBUG_MODE'] == '1':
+    if os.environ.get('DEBUG_MODE', None) == '1':
         sys.argv.extend(['telegram_gatherer', 'processor', 'telegram_broadcaster'])
     
     while True:

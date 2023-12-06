@@ -7,7 +7,9 @@ COPY ./requirements.txt /app/requirements.txt
 WORKDIR /app
 
 # install the dependencies and packages in the requirements file
-# RUN python -m pip install --upgrade pip
+RUN python -m pip install --upgrade pip
+RUN apt-get update
+RUN apt-get install ffmpeg libsm6 libxext6 -y
 RUN pip install -r requirements.txt
 
 # copy every content from the local file to the image
