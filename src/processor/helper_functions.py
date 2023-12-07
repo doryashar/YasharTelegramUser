@@ -53,16 +53,21 @@ def any_images_are_duplicate(msg, latest_messages):
     return False
 
 def remove_duplicates(msg, latest_messages=[]):
+    # There's a text that was in the latest messages
     if len(msg['message']) > 10 and len([l for l in latest_messages if msg['message'] in l.value['message']]):
         return False
+    
+    if any_images_are_duplicate(msg, latest_messages):
+        return False
+    
+    # There's no history with messages or current message it too short
+    if len(msg['message']) < 10 or len([l for l in latest_messages if l.value['message']]) == 0:
+        return True
     
     elif set_duplicate(msg, latest_messages):
         return False
     
-    elif any_images_are_duplicate(msg, latest_messages):
-        return False
-    
-    elif text_similarity_check(msg['message'], [l.value['message'] for l in latest_messages]):
+    elif text_similarity_check(msg['message'], [l.value['message'] for l in latest_messages if l.value['message']]):
         return False
     return True
 
