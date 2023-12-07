@@ -64,24 +64,35 @@ if __name__ == '__main__':
     time.sleep(5)
     
     
-    from telegram_gatherer import gatherer as telegram_gatherer
-    from processor import processor
-    from telegram_broadcaster import broadcaster as telegram_broadcaster
+    run_modules = {
+        'telegram_gatherer' : os.environ.get('TELEGRAM_GATHERER', None) == '1',
+        'processor' : os.environ.get('PROCESSOR', None) == '1',
+        'telegram_broadcaster' : os.environ.get('TELEGRAM_BROADCASTER', None) == '1'
+    }
+    
     if os.environ.get('DEBUG_MODE', None) == '1':
-        sys.argv.extend(['telegram_gatherer', 'processor', 'telegram_broadcaster'])
+        logger.info('in debug mode')
+        run_modules.update({'telegram_gatherer' : True, 'processor' : True, 'telegram_broadcaster' : True})
+    
     
     while True:
         event = threading.Event()
         workers = []
-        if 'telegram_gatherer' in sys.argv:
+        if run_modules['telegram_gatherer']:
+            logger.info('Loading telegram_gatherer')
+            from telegram_gatherer import gatherer as telegram_gatherer
             worker = threading.Thread(target=telegram_gatherer.main, args=(event,))
             worker.start() 
             workers.append(worker)
-        if 'processor' in sys.argv:
+        if run_modules['processor']:
+            logger.info('Loading processor')
+            from processor import processor
             worker = threading.Thread(target=processor.main, args=(event,))
             worker.start() 
             workers.append(worker)
-        if 'telegram_broadcaster' in sys.argv:
+        if run_modules['telegram_broadcaster']:
+            logger.info('Loading telegram_broadcaster')
+            from telegram_broadcaster import broadcaster as telegram_broadcaster
             worker = threading.Thread(target=telegram_broadcaster.main, args=(event,))
             worker.start() 
             workers.append(worker)

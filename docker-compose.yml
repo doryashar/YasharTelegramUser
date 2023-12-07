@@ -1,25 +1,60 @@
 version: '2'
 services:
 
-  all-comps:
+  # all-comps:
+  #   depends_on:
+  #     - kafka
+  #   build: .
+  #   environment:
+  #     KAFKA_SERVER: kafka:29092
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '1.0'
+  #         memory: 2000M
+
+  #       # reservations:
+  #       #   cpus: '0.0001'
+  #       #   memory: 20M
+
+  telegram-gatherer:
     depends_on:
       - kafka
     build: .
     environment:
       KAFKA_SERVER: kafka:29092
+      TELEGRAM_GATHERER: 1
     deploy:
       resources:
         limits:
           cpus: '1.0'
           memory: 2000M
 
-        # reservations:
-        #   cpus: '0.0001'
-        #   memory: 20M
+  processor:
+    depends_on:
+      - kafka
+    build: .
+    environment:
+      KAFKA_SERVER: kafka:29092
+      PROCESSOR: 1
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2000M
 
-  # telegram-gatherer:
-  # processor:
-  # telegram-broadcaster:
+  telegram-broadcaster:
+    depends_on:
+      - kafka
+    build: .
+    environment:
+      KAFKA_SERVER: kafka:29092
+      TELEGRAM_BROACASTER: 1
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2000M
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest

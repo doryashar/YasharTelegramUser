@@ -51,18 +51,28 @@ logger.info(f"Following {channels_to_follow}")
 #TODO: Fix config module
 with open('db/config.json', 'r') as fd:
     cfg = json.load(fd)
-    
-## =================================================================
 
-# Load Kafka producer
-from kafka import KafkaProducer
-producer = KafkaProducer(bootstrap_servers=[KAFKA_SERVER], 
-                         client_id=MYNAME, 
-                         value_serializer=lambda v: pickle.dumps(v), 
-                        #  value_serializer=lambda v: json.dumps(v).encode('utf-8'), 
-                         key_serializer=lambda v: str.encode(v) if v is not None else None)
-producer.send(CONTROL_TOPIC, {MYNAME : 'online!'})
-producer.flush()
+## =================================================================
+try:
+    # Load Kafka producer
+    from kafka import KafkaProducer
+    producer = KafkaProducer(bootstrap_servers=[KAFKA_SERVER], 
+                            client_id=MYNAME, 
+                            value_serializer=lambda v: pickle.dumps(v), 
+                            #  value_serializer=lambda v: json.dumps(v).encode('utf-8'), 
+                            key_serializer=lambda v: str.encode(v) if v is not None else None)
+    producer.send(CONTROL_TOPIC, {MYNAME : 'online!'})
+    producer.flush()
+except Exception as e:
+    logger.error(f'Failed to load Kafka: {e}')
+    if cfg.get('allow_no_kafka', False):
+        class dummyProducer: 
+            def flush(self, *args, **kwargs): pass
+            def send(self, *args, **kwargs): pass
+        producer = dummyProducer()
+    else :
+        raise
+    
 
 ## =================================================================
 
