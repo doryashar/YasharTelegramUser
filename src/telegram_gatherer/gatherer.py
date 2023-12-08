@@ -52,6 +52,7 @@ logger.info(f"Following {channels_to_follow}")
 with open('db/config.json', 'r') as fd:
     cfg = json.load(fd)
 
+
 ## =================================================================
 try:
     # Load Kafka producer
@@ -124,12 +125,13 @@ async def run():
             logger.info(f'album: {event}')
             smsg = [await send_event(msg) for msg in event.messages]
             smsg = parse_telegram_msg(smsg)
-            logger.info(f'Sending msg')
-            producer.send(GATHERING_TOPIC, smsg, key='MESSAGE')
+            msg_num = cfg.get('msg_num', 1)
+            cfg['msg_num'] = msg_num + 1
+            logger.info(f'Sending msg {msg_num}')
+            producer.send(GATHERING_TOPIC, smsg, key='MESSAGE', partition=msg_num)
             producer.flush()
             raise events.StopPropagation
         
-        msg_num = 0
         @client.on(events.NewMessage(incoming=True, chats=channels_to_follow))
         async def handleMsg(event):
             if event.message.grouped_id != None:
@@ -137,7 +139,8 @@ async def run():
                 return
             smsg = await send_event(event.message)
             smsg = parse_telegram_msg([smsg])
-            msg_num += 1
+            msg_num = cfg.get('msg_num', 1)
+            cfg['msg_num'] = msg_num + 1
             logger.info(f'Sending msg {msg_num}')#\){smsg}')
             producer.send(GATHERING_TOPIC, smsg, key='MESSAGE', partition=msg_num)
             producer.flush()
@@ -161,6 +164,8 @@ def main(event=None):
     asyncio.run(run())
     if event:
         event.set()
+
+
 
 if __name__ == '__main__':
     main()
