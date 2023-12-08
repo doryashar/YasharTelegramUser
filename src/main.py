@@ -60,9 +60,8 @@ if __name__ == '__main__':
         filename='run.log'
     )
     
-    logger.info('Now waiting for Kafka to be up and loaded')
-    time.sleep(5)
-    
+    logger.info('Waiting for Kafka to be up and loaded')
+    time.sleep(20)    
     
     run_modules = {
         'telegram_gatherer' : os.environ.get('TELEGRAM_GATHERER', None) == '1',

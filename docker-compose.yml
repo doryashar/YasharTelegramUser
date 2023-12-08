@@ -21,6 +21,7 @@ services:
     depends_on:
       - kafka
     build: .
+    restart: always
     environment:
       KAFKA_SERVER: kafka:29092
       TELEGRAM_GATHERER: 1
@@ -34,6 +35,7 @@ services:
     depends_on:
       - kafka
     build: .
+    restart: always
     environment:
       KAFKA_SERVER: kafka:29092
       PROCESSOR: 1
@@ -47,9 +49,10 @@ services:
     depends_on:
       - kafka
     build: .
+    restart: always
     environment:
       KAFKA_SERVER: kafka:29092
-      TELEGRAM_BROACASTER: 1
+      TELEGRAM_BROADCASTER: 1
     deploy:
       resources:
         limits:

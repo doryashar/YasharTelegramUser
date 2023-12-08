@@ -19,6 +19,7 @@ COPY .env *.session ./
 
 # RUN pip install requests beautifulsoup4 python-dotenv
 ENTRYPOINT [ "python" ]
-CMD [ "./src/main.py" ,"telegram_gatherer", "processor", "telegram_broadcaster"]
+CMD [ "./src/main.py" ]
+# ,"telegram_gatherer", "processor", "telegram_broadcaster"]
 # CMD [“python3”, “./main.py”] 
 # CMD [ "find" ]

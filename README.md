@@ -1,4 +1,4 @@
-## TODO:
+## TODO(s):
 - use telegram bot file id instead of downloading the file: https://github.com/LonamiWebs/Telethon/issues/1613
 - fix main python, docker, and docker-compose files to support running each agent.
 - each agent should be using a base class with producer and consumer and config loader

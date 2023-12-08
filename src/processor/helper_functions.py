@@ -5,9 +5,8 @@ from .image_similarity import structural_similarity
 
 """ 
     Find the stem (longest common substring) from a string array (arr)
-    The only modification is that the substring has to be in the edges of the strings and len(substring) > 5
 """
-def findstem(arr):
+def findstem(arr, corners = False, min_len=5):
     # Determine size of the array
     n = len(arr)
     # Take first word from array
@@ -16,11 +15,12 @@ def findstem(arr):
     l = len(s)
     res = ""
     imax = 0
-    for i in range(2):
-        for j in range(5, l + 1):
+    
+    def check_stem(s, res=""):
+        for j in range(i + min_len, l + 1):
             # generating all possible substrings
             # of our reference string arr[0] i.e s
-            stem = s[:j]
+            stem = s[i:j]
             k = 1
             for k in range(1, n):
                 # Check if the generated stem is
@@ -33,8 +33,17 @@ def findstem(arr):
             if (k + 1 == n and len(res) < len(stem)):
                 res = stem
                 imax = i
-        s = s[::-1]
-    return res[::-1] if imax else res
+        return res
+                
+    if corners:
+        for i in range(l):
+            res = check_stem(s, res)
+    else:
+        res1 = check_stem(s)
+        res2 = check_stem(s[::-1])[::-1]
+        res = res1 if len(res1) > len(res2) else res2
+        
+    return res
 
 def remove_links(msg, logger=None):
     # matches = re.findall(r'http\S+', my_string)
@@ -53,8 +62,9 @@ def any_images_are_duplicate(msg, latest_messages):
     return False
 
 def remove_duplicates(msg, latest_messages=[]):
-    # There's a text that was in the latest messages
-    if len(msg['message']) > 10 and len([l for l in latest_messages if msg['message'] in l.value['message']]):
+    # There's a text that was in the latest messages 
+    match_similar_cond = lambda texta, text_list, thresh=0.8 : len(findstem([texta, *text_list],corners=False)) > (thresh * len(texta))
+    if len(msg['message']) > 10 and match_similar_cond(msg['message'], [l.value['message'] for l in latest_messages if l.value['message']]):
         return False
     
     if any_images_are_duplicate(msg, latest_messages):
