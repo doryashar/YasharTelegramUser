@@ -39,6 +39,7 @@ def findstem(arr, corners = False, min_len=5):
         for i in range(l):
             res = check_stem(s, res)
     else:
+        i=0
         res1 = check_stem(s)
         res2 = check_stem(s[::-1])[::-1]
         res = res1 if len(res1) > len(res2) else res2
