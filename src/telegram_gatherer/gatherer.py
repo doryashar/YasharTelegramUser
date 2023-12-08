@@ -126,7 +126,7 @@ async def run():
             smsg = [await send_event(msg) for msg in event.messages]
             smsg = parse_telegram_msg(smsg)
             msg_num = cfg.get('msg_num', 1)
-            cfg['msg_num'] = msg_num + 1
+            cfg['msg_num'] = (msg_num + 1) % int(os.environ.get('KAFKA_NUM_PARTITIONS', 10))
             logger.info(f'Sending msg {msg_num}')
             producer.send(GATHERING_TOPIC, smsg, key='MESSAGE', partition=msg_num)
             producer.flush()
@@ -140,7 +140,7 @@ async def run():
             smsg = await send_event(event.message)
             smsg = parse_telegram_msg([smsg])
             msg_num = cfg.get('msg_num', 1)
-            cfg['msg_num'] = msg_num + 1
+            cfg['msg_num'] = (msg_num + 1) % int(os.environ.get('KAFKA_NUM_PARTITIONS', 10))
             logger.info(f'Sending msg {msg_num}')#\){smsg}')
             producer.send(GATHERING_TOPIC, smsg, key='MESSAGE', partition=msg_num)
             producer.flush()
