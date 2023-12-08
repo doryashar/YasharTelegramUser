@@ -46,7 +46,7 @@ def text_similarity_check(text_to_match, compare_list, threshold=15):
     #TODO: take the max and compare to threshold
     idx_text_score_list.sort(key=lambda x: x[2],reverse=True)
     top_text_with_scores = idx_text_score_list[0]
-    print(f"text_to_match:\n\t {text_to_match[::-1]}\ntop_text_with_scores:\n\t {top_text_with_scores[1][::-1]}, \nscore: {top_text_with_scores[2]}")
+    print(f"text_to_match:\n\t {text_to_match}\ntop_text_with_scores:\n\t {top_text_with_scores[1]}, \nscore: {top_text_with_scores[2]}")
     max_score = idx_text_score_list[0][2]
     return max_score > threshold
     

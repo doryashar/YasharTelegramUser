@@ -64,9 +64,9 @@ if __name__ == '__main__':
     time.sleep(20)    
     
     run_modules = {
-        'telegram_gatherer' : os.environ.get('TELEGRAM_GATHERER', None) == '1',
-        'processor' : os.environ.get('PROCESSOR', None) == '1',
-        'telegram_broadcaster' : os.environ.get('TELEGRAM_BROADCASTER', None) == '1'
+        'telegram_gatherer' : os.environ.get('TELEGRAM_GATHERER', None) == '1' or 'telegram_gatherer' in sys.argv,
+        'processor' : os.environ.get('PROCESSOR', None) == '1' or 'processor' in sys.argv,
+        'telegram_broadcaster' : os.environ.get('TELEGRAM_BROADCASTER', None) == '1' or 'telegram_broadcaster' in sys.argv
     }
     
     if os.environ.get('DEBUG_MODE', None) == '1':

@@ -129,6 +129,7 @@ async def run():
             producer.flush()
             raise events.StopPropagation
         
+        msg_num = 0
         @client.on(events.NewMessage(incoming=True, chats=channels_to_follow))
         async def handleMsg(event):
             if event.message.grouped_id != None:
@@ -136,8 +137,9 @@ async def run():
                 return
             smsg = await send_event(event.message)
             smsg = parse_telegram_msg([smsg])
-            logger.info(f'Sending msg')#\){smsg}')
-            producer.send(GATHERING_TOPIC, smsg, key='MESSAGE')
+            msg_num += 1
+            logger.info(f'Sending msg {msg_num}')#\){smsg}')
+            producer.send(GATHERING_TOPIC, smsg, key='MESSAGE', partition=msg_num)
             producer.flush()
             raise events.StopPropagation
         

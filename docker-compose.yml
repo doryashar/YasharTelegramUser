@@ -18,13 +18,15 @@ services:
   #       #   memory: 20M
 
   telegram-gatherer:
-    depends_on:
-      - kafka
+    # depends_on:
+    #   - kafka
     build: .
     restart: always
     environment:
-      KAFKA_SERVER: kafka:29092
+      KAFKA_SERVER: oracle.yashar.us:29092
       TELEGRAM_GATHERER: 1
+    volumes:
+      - .:/usr/src/app
     deploy:
       resources:
         limits:
@@ -32,13 +34,15 @@ services:
           memory: 2000M
 
   processor:
-    depends_on:
-      - kafka
+    # depends_on:
+    #   - kafka
     build: .
     restart: always
     environment:
-      KAFKA_SERVER: kafka:29092
+      KAFKA_SERVER: 10.147.17.136:29092
       PROCESSOR: 1
+    volumes:
+      - .:/usr/src/app
     deploy:
       resources:
         limits:
@@ -46,13 +50,15 @@ services:
           memory: 2000M
 
   telegram-broadcaster:
-    depends_on:
-      - kafka
+    # depends_on:
+    #   - kafka
     build: .
     restart: always
     environment:
-      KAFKA_SERVER: kafka:29092
+      KAFKA_SERVER: oracle.yashar.us:29092
       TELEGRAM_BROADCASTER: 1
+    volumes:
+      - .:/usr/src/app
     deploy:
       resources:
         limits:

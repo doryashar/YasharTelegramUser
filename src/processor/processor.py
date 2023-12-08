@@ -76,7 +76,7 @@ def handle_gathering_msg(in_msg):
             producer.send(PRODUCE_TOPIC, **out_msg)
             producer.flush()
         else:
-            logger.info(f'Ignoring {in_msg.value["message"]}')
+            logger.info(f'Ignoring {in_msg.value.get("message","No Message")}')
             
 def process(msg):
     """ 
