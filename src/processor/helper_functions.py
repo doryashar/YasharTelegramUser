@@ -62,13 +62,17 @@ def any_images_are_duplicate(msg, latest_messages):
                 return True
     return False
 
-def remove_duplicates(msg, latest_messages=[]):
+def remove_duplicates(msg, latest_messages=[], logger=None):
     # There's a text that was in the latest messages 
     match_similar_cond = lambda texta, text_list, thresh=0.8 : len(findstem([texta, *text_list],corners=False)) > (thresh * len(texta))
     if len(msg['message']) > 10 and match_similar_cond(msg['message'], [l.value['message'] for l in latest_messages if l.value['message']]):
+        if logger:
+            logger.info(f"Found duplicate message: {msg['message']}\n stem:{findstem([msg['message'], *[l.value['message'] for l in latest_messages if l.value['message']]],corners=False)}\nlatest messages:{[l.value['message'] for l in latest_messages if l.value['message']]}")
         return False
     
     if any_images_are_duplicate(msg, latest_messages):
+        if logger:
+            logger.info(f"Found duplicate Image")
         return False
     
     # There's no history with messages or current message it too short
@@ -76,9 +80,13 @@ def remove_duplicates(msg, latest_messages=[]):
         return True
     
     elif set_duplicate(msg, latest_messages):
+        if logger:
+            logger.info(f"Found set duplicate")
         return False
     
     elif text_similarity_check(msg['message'], [l.value['message'] for l in latest_messages if l.value['message']]):
+        if logger:
+            logger.info(f"Found text similarity")
         return False
     return True
 

@@ -67,7 +67,9 @@ consumer = KafkaConsumer(GATHERING_TOPIC, bootstrap_servers=KAFKA_SERVER,
                          group_id=GROUP_ID,                         
                          )
 # consumer.assign([TopicPartition('foobar', 2)]) # Manually assign partition list
+# TODO: in order to get ALL messages from Kafka, we need a consumer with different group ID for PRODUCE_TOPIC
 consumer.subscribe([CONTROL_TOPIC, GATHERING_TOPIC, PRODUCE_TOPIC])
+
 
 ## =================================================================
 def handle_gathering_msg(in_msg):
@@ -85,8 +87,15 @@ def process(msg):
 
     try:
         msg = msg._asdict() #Convert to class object
-        rmsg = msg['value']                
-        
+        rmsg = msg['value']
+        if rmsg['from'].get('fwd_id', False) or rmsg.get('forwards', False):
+            if cfg.get('pass_new_forwards_to_control_channel', True):
+                control_channel_id = 4049737131 #TODO: take it from elsewhere
+                rmsg['target_channel'] = control_channel_id
+            elif cfg.get('ignore_forwards', True):
+                logger.info(f'Found forwarded message')
+                return False
+            
         if cfg.get('remove_regexs_from_file', True):
             regexes = None
             if not remove_regexs(rmsg, regexes):
@@ -107,7 +116,7 @@ def process(msg):
             rmsg['message'] = remove_links(rmsg['message'])
                 
         if cfg.get('remove_duplicates', True):
-            if not remove_duplicates(rmsg, latest_messages=latest_messages):
+            if not remove_duplicates(rmsg, latest_messages=latest_messages, logger=logger):
                 logger.info(f'Found duplicate')
                 return False
             

@@ -70,9 +70,13 @@ def parse_telegram_msg(msgs, logger=logging):
                                 'from_user' : None,
                                 'via_input_bot' : smsg.via_input_bot, 
                                 'via_bot' : smsg.via_bot, 
-                                'via_bot_id' : smsg.via_bot_id,   
+                                'via_bot_id' : smsg.via_bot_id,
+                                'fwd_from' : smsg.fwd_from,  
+                                'forward' : smsg.forward, 
                                 #TODO: continue
                             },
+                            
+                            'forwards' : smsg.forwards,
                             'web_preview' : smsg.web_preview,
                             'venue' :  smsg.venue,    
                             'views' :  smsg.views,   
