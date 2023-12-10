@@ -9,6 +9,8 @@ from .image_similarity import structural_similarity
 def findstem(arr, only_corners = True, min_len=5):
     # Determine size of the array
     n = len(arr)
+    if n == 1:
+        return ""
     # Take first word from array
     # as reference
     s = arr[0]
