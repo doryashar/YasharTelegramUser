@@ -6,7 +6,7 @@ from .image_similarity import structural_similarity
 """ 
     Find the stem (longest common substring) from a string array (arr)
 """
-def findstem(arr, corners = False, min_len=5):
+def findstem(arr, only_corners = True, min_len=5):
     # Determine size of the array
     n = len(arr)
     # Take first word from array
@@ -15,7 +15,6 @@ def findstem(arr, corners = False, min_len=5):
     l = len(s)
     res = ""
     imax = 0
-    
     def check_stem(s, res=""):
         for j in range(i + min_len, l + 1):
             # generating all possible substrings
@@ -30,20 +29,19 @@ def findstem(arr, corners = False, min_len=5):
             # If current substring is present in
             # all strings and its length is greater
             # than current result
-            if (k + 1 == n and len(res) < len(stem)):
-                res = stem
-                imax = i
+            else:
+                if len(res) < len(stem):
+                    res = stem
+                    imax = i
         return res
-                
-    if corners:
-        for i in range(l):
-            res = check_stem(s, res)
-    else:
+    if only_corners:
         i=0
         res1 = check_stem(s)
         res2 = check_stem(s[::-1])[::-1]
         res = res1 if len(res1) > len(res2) else res2
-        
+    else:
+        for i in range(l):
+            res = check_stem(s, res)
     return res
 
 def remove_links(msg, logger=None):
@@ -64,10 +62,10 @@ def any_images_are_duplicate(msg, latest_messages):
 
 def remove_duplicates(msg, latest_messages=[], logger=None):
     # There's a text that was in the latest messages 
-    match_similar_cond = lambda texta, text_list, thresh=0.8 : len(findstem([texta, *text_list],corners=False)) > (thresh * len(texta))
+    match_similar_cond = lambda texta, text_list, thresh=0.8 : len(findstem([texta, *text_list], only_corners=False)) > (thresh * len(texta))
     if len(msg['message']) > 10 and match_similar_cond(msg['message'], [l.value['message'] for l in latest_messages if l.value['message']]):
         if logger:
-            logger.info(f"Found duplicate message: {msg['message']}\n stem:{findstem([msg['message'], *[l.value['message'] for l in latest_messages if l.value['message']]],corners=False)}\nlatest messages:{[l.value['message'] for l in latest_messages if l.value['message']]}")
+            logger.info(f"Found duplicate message: {msg['message']}\n stem:{findstem([msg['message'], *[l.value['message'] for l in latest_messages if l.value['message']]], only_corners=False)}\nlatest messages:{[l.value['message'] for l in latest_messages if l.value['message']]}")
         return False
     
     if any_images_are_duplicate(msg, latest_messages):
@@ -92,7 +90,7 @@ def remove_duplicates(msg, latest_messages=[], logger=None):
 
 import json, os
 try:
-    with open('db/channels.json', 'r') as f:
+    with open('db/channels.json', 'r', encoding='utf-8') as f:
         channels = json.load(f)
 except:
     channels = dict()
@@ -116,7 +114,7 @@ def remove_signatures(msg, logger=None):
     channels[cid]['last_5_msgs'].append(msg['message'])
     if len(channels[cid]['last_5_msgs']) > 5:
         channels[cid]['last_5_msgs'].pop(0)
-        new_sig = findstem(channels[cid]['last_5_msgs'])
+        new_sig = findstem(channels[cid]['last_5_msgs'], only_corners=True)
         
         if new_sig:
             #TODO: send it to controller
@@ -124,8 +122,8 @@ def remove_signatures(msg, logger=None):
                 logger.info(f"Found a signature for channel [{channels[cid]['alias']}]: {new_sig}")
             channels[cid]['signatures'].append(new_sig)
         
-    with open('db/channels.json', 'w') as f:
-        json.dump(channels, f)
+    with open('db/channels.json', 'w', encoding='utf-8') as f:
+        json.dump(channels, f, ensure_ascii=False)
         
     for signature in channels[cid]['signatures']:
         msg['message'] = msg['message'].replace(signature, '')
