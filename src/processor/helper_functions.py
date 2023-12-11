@@ -84,7 +84,7 @@ def remove_duplicates(msg, latest_messages=[], logger=None):
             logger.info(f"Found set duplicate")
         return False
     
-    elif text_similarity_check(msg['message'], [l.value['message'] for l in latest_messages if l.value['message']]):
+    elif text_similarity_check(msg.get('en_message', msg['message']), [l.value.get('en_message',l.value['message']) for l in latest_messages if l.value['message']]):
         if logger:
             logger.info(f"Found text similarity")
         return False

@@ -151,7 +151,8 @@ def parse_telegram_msg(msgs, logger=logging):
         send_message_dict_cp = copy.deepcopy(send_message_dict)
         for i in range(len(send_message_dict_cp['files'])):
             send_message_dict_cp['files'][i]['bytes'] = None
-        logger.info(f'\nParsed from (asdict):\n{pretty_dict(smsg.to_dict())}\nTo:\n{pretty_dict(send_message_dict_cp)}') 
+            
+        logger.debug(f'\nParsed from (asdict):\n{pretty_dict(smsg.to_dict())}\nTo:\n{pretty_dict(send_message_dict_cp)}') 
         
     
     except Exception as exp:

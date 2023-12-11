@@ -3,32 +3,27 @@ from sentence_transformers import SentenceTransformer, util
 
 # Load the pre-trained SentenceTransformer model for generating sentence embeddings.
 models = [
+    'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', #tensor([[19.3317, 21.1672,  8.2840,  4.1945]])
+    'sentence-transformers/all-MiniLM-L12-v2',
+    'sentence-transformers/all-mpnet-base-v2',
+    'sentence-transformers/all-MiniLM-L6-v2', #tensor([[0.4734, 0.3955, 0.6915, 0.3995]]
+    
     'multi-qa-MiniLM-L6-cos-v1', #tensor([[0.2033, 0.1526, 0.5856, 0.2388]])
     'sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens', #tensor([[191.1041, 219.5202, 126.4406,  72.7892]])
     'sentence-transformers/distiluse-base-multilingual-cased-v2', # tensor([[0.2931, 0.4783, 0.2947, 0.0468]])
-    'sentence-transformers/all-MiniLM-L6-v2', #tensor([[0.4734, 0.3955, 0.6915, 0.3995]]
     'dean-ai/legal_heBERT_ft', #tensor([[221.9029, 287.2466, 288.1569, 188.1941]])
-    'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', #tensor([[19.3317, 21.1672,  8.2840,  4.1945]])
-    'intfloat/multilingual-e5-large'
+    'intfloat/multilingual-e5-large',
     ]
 
 def verify_model(model_name):
     model = SentenceTransformer(model_name, device="cpu")
     import time
-
     start = time.time()
-    query_embedding = model.encode('זה אדם שמח')
-    passage_embedding = model.encode(['האיש הזה לא מפסיק לחייך',
-                                    'הוא מאושר',
-                                    'איזה אדם אגדה',
-                                    'חבר יקר ביקש לשאול לשלומך'])
-
+    query_embedding = model.encode(arr[0])
+    passage_embedding = model.encode(arr[1:])
     end = time.time()
     print(f"mode {model_name} score: {util.dot_score(query_embedding, passage_embedding)}, took {end - start}")
  
-# for model_name in models:   
-#     verify_model(model_name)
-
 def text_similarity_check(text_to_match, compare_list, threshold=15):
     if len(compare_list) == 0:
       return False
@@ -51,6 +46,23 @@ def text_similarity_check(text_to_match, compare_list, threshold=15):
     return max_score > threshold
     
     
+if __name__ == '__main__':
+  from googletrans import Translator
+  trans = Translator()
+  arr = [
+    'זה אדם שמח',
+    'האיש הזה לא מפסיק לחייך', 
+    'הוא מאושר',
+    'איזה אדם אגדה',
+    'חבר יקר ביקש לשאול לשלומך',
+    'עוד אחד שבא להרים',
+    'אח שלי אוהב שוקולד'
+  ]
+  arr = [t.text for t in trans.translate(arr, src='he', dest='en')]
+  for model_name in models:   
+      # Expected is: #  Highest, Highest, Low, Lowest, Lowest, Lowest
+      verify_model(model_name)
+
 
 
 """    

@@ -148,7 +148,7 @@ async def run():
         
         @client.on(events.NewMessage(blacklist_chats=[base_channel_id, *channels_to_follow]))
         async def simplechat(event):
-            logger.warning(f"CHAT: {event.message}")
+            logger.debug(f"CHAT: {event.message}")
             
         # @client.on(events.NewMessage(chats=[base_channel_id]))
         # async def simplechat(event):

@@ -132,10 +132,10 @@ async def run_bot(event=None):
             if not isinstance(smsg, dict) or now - smsg.get('time', now + timedelta(hours=2)) > timedelta(hours = 1):
                 logger.info(f'Old message was received, ignoring')
                 continue 
-            elif smsg['message'].startswith('YasharNews:'):
-                logger.info(f'YasharNews message was received, ignoring')
-                continue 
-                
+            
+            # elif smsg['message'].startswith('YasharNews:'):
+            #     logger.info(f'YasharNews message was received, ignoring')
+            #     continue 
             
             if smsg['files']:
                 logger.info('Has file/s. uploading them.')
@@ -148,7 +148,8 @@ async def run_bot(event=None):
             
             try:
                 #TODO: send 2 messages if len > 1000
-                message = smsg.get('message', '')[:1000] 
+                message = smsg.get('pre_msg', '') + smsg.get('message', '') + smsg.get('post_msg', '')
+                message = message[:1000] 
                 if not message and  isinstance(smsg.get('file', None), list):
                     message = [f['caption'][:1000] for f in smsg['files'] if f['caption']]
                 

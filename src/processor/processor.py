@@ -23,6 +23,7 @@ import random
 from datetime import datetime
 from .helper_functions import remove_links, remove_ads, remove_duplicates, remove_regexs, remove_signatures
 from common_funcs import handle_control_msg
+from googletrans import Translator
 # from ..config import cfg
     
 ## =================================================================
@@ -44,6 +45,8 @@ GROUP_ID = os.getenv('GROUP_ID', f'{MYNAME}_TBOT')
 #TODO: Fix config module
 with open('db/config.json', 'r') as fd:
     cfg = json.load(fd)
+
+translator = Translator()
 
 ## =================================================================
 
@@ -67,9 +70,15 @@ consumer = KafkaConsumer(GATHERING_TOPIC, bootstrap_servers=KAFKA_SERVER,
                          group_id=GROUP_ID,                         
                          )
 # consumer.assign([TopicPartition('foobar', 2)]) # Manually assign partition list
-# TODO: in order to get ALL messages from Kafka, we need a consumer with different group ID for PRODUCE_TOPIC
-consumer.subscribe([CONTROL_TOPIC, GATHERING_TOPIC, PRODUCE_TOPIC])
+consumer.subscribe([CONTROL_TOPIC, GATHERING_TOPIC])
 
+history_produced_consumer = KafkaConsumer(PRODUCE_TOPIC, bootstrap_servers=KAFKA_SERVER,
+                         value_deserializer = lambda v: pickle.loads(v),
+                        #  value_deserializer = lambda v: json.loads(v.decode('utf-8')),
+                         auto_offset_reset='earliest', 
+                         enable_auto_commit=True,
+                         group_id=f'{GROUP_ID}_{random.randint(1,1000)}',                         
+                         )
 
 ## =================================================================
 def handle_gathering_msg(in_msg):
@@ -88,9 +97,11 @@ def process(msg):
     try:
         msg = msg._asdict() #Convert to class object
         rmsg = msg['value']
+        rmsg.update({'timestamp' : datetime.now(), 'pre_msg' : '', 'post_msg' : ''})
+        
         if rmsg['from'].get('fwd_id', False) or rmsg.get('forwards', False):
             if cfg.get('pass_new_forwards_to_control_channel', True):
-                control_channel_id = 4049737131 #TODO: take it from elsewhere
+                control_channel_id = '4049737131' #TODO: take it from elsewhere
                 rmsg['target_channel'] = control_channel_id
             elif cfg.get('ignore_forwards', True):
                 logger.info(f'Found forwarded message')
@@ -115,19 +126,21 @@ def process(msg):
         if cfg.get('remove_links', True):
             rmsg['message'] = remove_links(rmsg['message'])
                 
+        if cfg.get('translate_to_english', True):
+            translations = translator.translate(rmsg['message'], dest='en', src='auto')
+            rmsg['en_message'] = translations.text
+            
         if cfg.get('remove_duplicates', True):
             if not remove_duplicates(rmsg, latest_messages=latest_messages, logger=logger):
                 logger.info(f'Found duplicate')
                 return False
             
         if cfg.get('add_channel_alias', True):
-            rmsg['message'] = f"{rmsg['from']['chat_title']}:\n{rmsg['message']}"
-        
+            rmsg['pre_msg'] = f"{rmsg['from']['chat_title']}:\n"
         
         for i in ['topic', 'offset', 'timestamp', 'timestamp_type' ,'checksum', 'serialized_key_size', 'serialized_value_size', 'serialized_header_size']:
             del msg[i]
             
-        rmsg['time'] = datetime.now()
         msg['value'] =  rmsg
         msg_id = random.randint(0,999999)
         new_key = f"{msg['key'].decode()}_{msg_id}"
@@ -144,9 +157,22 @@ def process(msg):
 ## =================================================================
 latest_messages = []
 def handle_produce_msg(in_msg): 
-    latest_messages.append(in_msg)
-    if len(latest_messages) > cfg.get('max_latest_messages', 1000):
+    if isinstance(in_msg, list):
+        latest_messages.extend(in_msg)
+    else:
+        latest_messages.append(in_msg)
+    while len(latest_messages) > cfg.get('max_latest_messages', 1000):
         latest_messages.pop(0)
+def update_history():
+    raw_messages = history_produced_consumer.poll(
+        timeout_ms=100, 
+        # max_records=200
+    )
+    for topic_partition, messages in raw_messages.items():
+        # if topic_partition.topic == 'k_connectin_status':
+        # for message in messages:
+            handle_produce_msg(messages)
+        
 ## =================================================================
 
 def main(event=None):
@@ -154,18 +180,17 @@ def main(event=None):
     num_sent_messages = 0
     num_ignored_messages = 0
 
-    for in_msg in consumer:
+    for in_msg in consumer:        
         if event and event.is_set():
             break
+        
+        update_history()
         
         if in_msg.topic == CONTROL_TOPIC:
             handle_control_msg(in_msg)
         
         elif in_msg.topic == GATHERING_TOPIC:
             handle_gathering_msg(in_msg)
-        
-        elif in_msg.topic == PRODUCE_TOPIC:
-            handle_produce_msg(in_msg)
         
         else:
             logging.error(f'Got unkown msg topic: {in_msg}')
