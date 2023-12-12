@@ -100,9 +100,9 @@ def process(msg):
         rmsg = msg['value']
         rmsg.update({'timestamp' : datetime.now(), 'pre_msg' : '', 'post_msg' : ''})
         
-        if rmsg['from'].get('fwd_id', False) or rmsg.get('forwards', False):
+        if rmsg['from'].get('fwd_from', False) or rmsg['from'].get('forward', False):
             if cfg.get('pass_new_forwards_to_control_channel', True):
-                control_channel_id = '4049737131' #TODO: take it from elsewhere
+                control_channel_id = 'yasharcontrol' #TODO: take it from elsewhere
                 rmsg['target_channel'] = control_channel_id
             elif cfg.get('ignore_forwards', True):
                 logger.info(f'Found forwarded message')
@@ -165,6 +165,7 @@ def handle_produce_msg(in_msg):
     while len(latest_messages) > cfg.get('max_latest_messages', 1000):
         latest_messages.pop(0)
 def update_history():
+    logger.info('Updating history')
     raw_messages = history_produced_consumer.poll(
         timeout_ms=100, 
         # max_records=200
@@ -172,6 +173,7 @@ def update_history():
     for topic_partition, messages in raw_messages.items():
         # if topic_partition.topic == 'k_connectin_status':
         # for message in messages:
+            logger.info('retrieved {} messages for topic {}'.format(len(messages), topic_partition))
             handle_produce_msg(messages)
         
 ## =================================================================

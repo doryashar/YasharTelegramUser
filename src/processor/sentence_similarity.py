@@ -15,6 +15,9 @@ models = [
     'intfloat/multilingual-e5-large',
     ]
 
+model_name = 'sentence-transformers/all-mpnet-base-v2'
+default_threshold = 0.5
+
 def verify_model(model_name):
     model = SentenceTransformer(model_name, device="cpu")
     import time
@@ -24,12 +27,11 @@ def verify_model(model_name):
     end = time.time()
     print(f"mode {model_name} score: {util.dot_score(query_embedding, passage_embedding)}, took {end - start}")
  
-def text_similarity_check(text_to_match, compare_list, threshold=15):
+def text_similarity_check(text_to_match, compare_list, threshold=default_threshold):
     if len(compare_list) == 0:
       return False
     if len(text_to_match) == 0:
       return False
-    model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
     model = SentenceTransformer(model_name, device="cpu")
     query_embedding = model.encode(text_to_match)
     passage_embedding = model.encode(compare_list)
