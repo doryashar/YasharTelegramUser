@@ -105,11 +105,8 @@ except:
 def remove_signatures(msg, logger=None):
     if not msg:
        return True
-    
-    for s in channels[cid]['signatures']:
-        msg['message'] = msg['message'].replace(s, '')
-        
-    cid = f"{msg['from']['chat_id']}"
+
+    cid = f"{msg['from']['chat_id']}"        
     if cid not in channels:
         channels[cid] = {
             'signatures' : [],
@@ -120,7 +117,9 @@ def remove_signatures(msg, logger=None):
             'last_seen' : f'{datetime.now()}', 
         }
         
-    
+    for s in channels[cid]['signatures']:
+        msg['message'] = msg['message'].replace(s, '')
+        
     channels[cid]['last_5_msgs'].append(msg['message'])
     if len(channels[cid]['last_5_msgs']) < 5:
         return True
