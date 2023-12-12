@@ -1,4 +1,4 @@
-import re
+import re, glob
 from datetime import datetime
 from .sentence_similarity import text_similarity_check
 from .image_similarity import structural_similarity
@@ -60,9 +60,13 @@ def any_images_are_duplicate(msg, latest_messages):
             latest_images = [f['bytes'] for message in latest_messages for f in message.value['files'] if f['as_image'] == True]
             res = structural_similarity(file['bytes'], latest_images)
             if res:
-                with open('media/duplicate1.jpg', 'wb') as f:
+                key = lambda x: int(re.search(r'media/duplicate(\d+)_[1|2].jpg', x).group(1))
+                glob_result = glob.glob('media/duplicate*_*.jpg')
+                max_duplicate_index = max([0, *[key(file) for file in glob_result]])
+                new_index = max_duplicate_index + 1
+                with open(f'media/duplicate_{new_index}_1.jpg', 'wb') as f:
                     f.write(file['bytes'])
-                with open('media/duplicate2.jpg', 'wb') as f:
+                with open(f'media/duplicate_{new_index}_2.jpg', 'wb') as f:
                     f.write(res)
                 return True
     return False

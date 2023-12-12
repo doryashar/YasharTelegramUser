@@ -72,7 +72,7 @@ def parse_telegram_msg(msgs, logger=logging):
                                 'via_bot' : smsg.via_bot, 
                                 'via_bot_id' : smsg.via_bot_id,
                                 'fwd_from' : smsg.fwd_from,  
-                                'forward' : smsg.forward, 
+                                'forward' : None, 
                                 #TODO: continue
                             },
                             
@@ -101,6 +101,9 @@ def parse_telegram_msg(msgs, logger=logging):
                     j: getattr(smsg,j) for j in ['game', 'geo', 'gif', 'forwards', 'legacy', 'media_unread', 'noforwards', 'reply_to_msg_id', 'restriction_reason', 'dice', 'edit_date', 'edit_hide', 'button_count', 'action']
                 }) #'action_entites', 'forward',
             
+            if smsg.forward:
+                send_message_dict['from']['forward'] = {key:val for key,val in smsg.forward.__dict__.items() if not key.startswith('_')}
+                
             if rmedia: #isinstance(smsg.media, telethon.tl.types.MessageMediaPhoto):
                 file_dict = {
                     'bytes' : rmedia,
