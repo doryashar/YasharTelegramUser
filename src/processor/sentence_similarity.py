@@ -3,10 +3,10 @@ from sentence_transformers import SentenceTransformer, util
 
 # Load the pre-trained SentenceTransformer model for generating sentence embeddings.
 models = [
-    'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', #tensor([[19.3317, 21.1672,  8.2840,  4.1945]])
-    'sentence-transformers/all-MiniLM-L12-v2',
-    'sentence-transformers/all-mpnet-base-v2',
-    'sentence-transformers/all-MiniLM-L6-v2', #tensor([[0.4734, 0.3955, 0.6915, 0.3995]]
+    'sentence-transformers/all-mpnet-base-v2', # 0.6 / 0.5
+    'sentence-transformers/all-MiniLM-L12-v2', # 0.4
+    'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', # 10
+    'sentence-transformers/all-MiniLM-L6-v2', # 0.4
     
     'multi-qa-MiniLM-L6-cos-v1', #tensor([[0.2033, 0.1526, 0.5856, 0.2388]])
     'sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens', #tensor([[191.1041, 219.5202, 126.4406,  72.7892]])
@@ -50,6 +50,19 @@ if __name__ == '__main__':
   from googletrans import Translator
   trans = Translator()
   arr = [
+    
+#     """   The damage to the ship near Bab Almandav - near the coast of Yemen
+
+# US Central Command updates: The tanker Strinda was hit by a cruise missile fired at it from territory controlled by the Houthis while it was passing by the Bab Almandab Straits.
+# A fire broke out on board the tanker following the attack, but there were no reports of casualties.
+# The attack was carried out while there were no US Navy vessels in the area, but the destroyer USS Mason responded to the tanker's distress call.
+# Abu Ali
+# top_text_with_scores:""",
+#     """The damage to the ship near Bab Almandav - near the coast of Yemen
+
+# US Central Command updates: The tanker Strinda was hit by a cruise missile fired at it from territory controlled by the Houthis while it was passing by the Bab Almandab Straits.
+# A fire broke out on board the tanker following the attack, but there were no reports of casualties.
+# The attack was carried out while there were no US Navy vessels in the area, but the destroyer USS Mayson responded to the tanker's distress call., """
     'זה אדם שמח',
     'האיש הזה לא מפסיק לחייך', 
     'הוא מאושר',

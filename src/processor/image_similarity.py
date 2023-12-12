@@ -10,7 +10,7 @@ def structural_similarity(image1, image2, threshold=0.9):
         image_list = image2
         for i in image_list:
             if structural_similarity(image1, i):
-                return True
+                return i
         return False
     
     if isinstance(image1, bytes):

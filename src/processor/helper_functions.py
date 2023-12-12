@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from .sentense_similarity import text_similarity_check
+from .sentence_similarity import text_similarity_check
 from .image_similarity import structural_similarity
 
 """ 
@@ -58,7 +58,12 @@ def any_images_are_duplicate(msg, latest_messages):
     for file in msg['files']:
         if file['as_image'] == True:
             latest_images = [f['bytes'] for message in latest_messages for f in message.value['files'] if f['as_image'] == True]
-            if structural_similarity(file['bytes'], latest_images):
+            res = structural_similarity(file['bytes'], latest_images)
+            if res:
+                with open('media/duplicate1.jpg', 'wb') as f:
+                    f.write(file['bytes'])
+                with open('media/duplicate2.jpg', 'wb') as f:
+                    f.write(res)
                 return True
     return False
 
@@ -101,6 +106,9 @@ def remove_signatures(msg, logger=None):
     if not msg:
        return True
     
+    for s in channels[cid]['signatures']:
+        msg['message'] = msg['message'].replace(s, '')
+        
     cid = f"{msg['from']['chat_id']}"
     if cid not in channels:
         channels[cid] = {
@@ -114,21 +122,23 @@ def remove_signatures(msg, logger=None):
         
     
     channels[cid]['last_5_msgs'].append(msg['message'])
-    if len(channels[cid]['last_5_msgs']) > 5:
-        channels[cid]['last_5_msgs'].pop(0)
-        new_sig = findstem(channels[cid]['last_5_msgs'], only_corners=True)
-        
-        if new_sig:
-            #TODO: send it to controller
-            if logger:
-                logger.info(f"Found a signature for channel [{channels[cid]['alias']}]: {new_sig}")
-            channels[cid]['signatures'].append(new_sig)
-        
-    with open('db/channels.json', 'w', encoding='utf-8') as f:
-        json.dump(channels, f, ensure_ascii=False)
-        
-    for signature in channels[cid]['signatures']:
-        msg['message'] = msg['message'].replace(signature, '')
+    if len(channels[cid]['last_5_msgs']) < 5:
+        return True
+    
+    channels[cid]['last_5_msgs'].pop(0)
+    new_sig = findstem(channels[cid]['last_5_msgs'], only_corners=True)
+    
+    if new_sig:
+        #TODO: send it to controller
+        if logger:
+            logger.info(f"Found a signature for channel [{channels[cid]['alias']}]: {new_sig}")
+        channels[cid]['signatures'].append(new_sig)
+    
+        # TODO: add a function to update db and do it from outside of this function
+        with open('db/channels.json', 'w', encoding='utf-8') as f:
+            json.dump(channels, f, ensure_ascii=False)
+    
+        msg['message'] = msg['message'].replace(new_sig, '')
         
     return True
 

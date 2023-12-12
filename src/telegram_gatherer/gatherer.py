@@ -141,7 +141,7 @@ async def run():
             smsg = parse_telegram_msg([smsg])
             msg_num = cfg.get('msg_num', 1)
             cfg['msg_num'] = (msg_num + 1) % int(os.environ.get('KAFKA_NUM_PARTITIONS', 10))
-            logger.info(f'Sending msg {msg_num}')#\){smsg}')
+            logger.info(f'Sending msg {msg_num}\n{event.message.to_dict()}')
             producer.send(GATHERING_TOPIC, smsg, key='MESSAGE', partition=msg_num)
             producer.flush()
             raise events.StopPropagation

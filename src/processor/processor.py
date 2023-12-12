@@ -95,6 +95,7 @@ def process(msg):
     """
 
     try:
+        logger.info('Processing msg:\n{}'.format(msg.value['message']))
         msg = msg._asdict() #Convert to class object
         rmsg = msg['value']
         rmsg.update({'timestamp' : datetime.now(), 'pre_msg' : '', 'post_msg' : ''})
