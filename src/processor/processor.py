@@ -22,7 +22,7 @@ import os
 import random
 from datetime import datetime
 from .helper_functions import remove_links, remove_ads, remove_duplicates, remove_regexs, remove_signatures
-from common_funcs import handle_control_msg
+# from common_funcs import handle_control_msg
 from googletrans import Translator
 # from ..config import cfg
     
@@ -54,6 +54,8 @@ translator = Translator()
 from kafka import KafkaProducer
 producer = KafkaProducer(bootstrap_servers=KAFKA_SERVER, 
                          value_serializer=lambda v: pickle.dumps(v), 
+                         max_request_size=100*1024*1024,
+                         buffer_memory=100*1024*1024,
                         #  value_serializer=lambda v: json.dumps(v).encode('utf-8'), 
                         #  key_serializer=lambda v: str.encode(v) if v is not None else None
                          )
@@ -66,6 +68,8 @@ consumer = KafkaConsumer(GATHERING_TOPIC, bootstrap_servers=KAFKA_SERVER,
                          value_deserializer = lambda v: pickle.loads(v),
                         #  value_deserializer = lambda v: json.loads(v.decode('utf-8')),
                         #  auto_offset_reset='earliest', 
+                         max_partition_fetch_bytes= 100*1024*1024,
+                         fetch_max_bytes = 1024*1024*1024,
                          session_timeout_ms=100000, heartbeat_interval_ms=50000,
                          enable_auto_commit=True,
                          group_id=GROUP_ID,                         
@@ -77,6 +81,8 @@ history_produced_consumer = KafkaConsumer(PRODUCE_TOPIC, bootstrap_servers=KAFKA
                          value_deserializer = lambda v: pickle.loads(v),
                         #  value_deserializer = lambda v: json.loads(v.decode('utf-8')),
                          auto_offset_reset='earliest', 
+                         max_partition_fetch_bytes= 100*1024*1024,
+                         fetch_max_bytes = 1024*1024*1024,
                          enable_auto_commit=True,
                          group_id=f'{GROUP_ID}_{random.randint(1,1000)}',                         
                          )
@@ -177,6 +183,10 @@ def update_history(timeout=100):
             logger.info('retrieved {} messages for topic {}'.format(len(messages), topic_partition))
             handle_produce_msg(messages)
         
+## =================================================================
+def handle_control_msg(msg):
+    logger.info(f'Got control msg: {msg}')
+    return False
 ## =================================================================
 
 def main(event=None):

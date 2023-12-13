@@ -50,6 +50,8 @@ with open('db/config.json', 'r') as fd:
 from kafka import KafkaProducer
 producer = KafkaProducer(bootstrap_servers=KAFKA_SERVER, 
                          value_serializer=lambda v: pickle.dumps(v), 
+                         max_request_size=100*1024*1024,
+                         buffer_memory=100*1024*1024,
                         #  value_serializer=lambda v: json.dumps(v).encode('utf-8'), 
                          key_serializer=lambda v: str.encode(v) if v is not None else None)
 producer.send(CONTROL_TOPIC, {MYNAME : 'online!'})
@@ -59,6 +61,8 @@ producer.flush()
 from kafka import KafkaConsumer
 consumer = KafkaConsumer(PRODUCE_TOPIC, bootstrap_servers=KAFKA_SERVER,
                          value_deserializer = lambda v: pickle.loads(v),
+                         max_partition_fetch_bytes= 100*1024*1024,
+                         fetch_max_bytes = 1024*1024*1024,
                         #  value_deserializer = lambda v: json.loads(v.decode('utf-8')),
                         # auto_offset_reset='earliest', 
                         enable_auto_commit=True,

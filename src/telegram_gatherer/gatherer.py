@@ -60,6 +60,8 @@ try:
     producer = KafkaProducer(bootstrap_servers=[KAFKA_SERVER], 
                             client_id=MYNAME, 
                             value_serializer=lambda v: pickle.dumps(v), 
+                            max_request_size=100*1024*1024,
+                            buffer_memory=100*1024*1024,
                             #  value_serializer=lambda v: json.dumps(v).encode('utf-8'), 
                             key_serializer=lambda v: str.encode(v) if v is not None else None)
     producer.send(CONTROL_TOPIC, {MYNAME : 'online!'})
@@ -142,7 +144,7 @@ async def run():
             msg_num = cfg.get('msg_num', 1)
             cfg['msg_num'] = (msg_num + 1) % int(os.environ.get('KAFKA_NUM_PARTITIONS', 10))
             logger.info(f'Sending msg {msg_num}\n{event.message.to_dict()}')
-            producer.send(GATHERING_TOPIC, smsg, key='MESSAGE', partition=msg_num)
+            res = producer.send(GATHERING_TOPIC, smsg, key='MESSAGE', partition=msg_num)
             producer.flush()
             raise events.StopPropagation
         
