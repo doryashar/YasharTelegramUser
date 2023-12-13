@@ -49,7 +49,7 @@ def findstem(arr, only_corners = True, min_len=5):
 
 def remove_links(msg, logger=None):
     # matches = re.findall(r'http\S+', my_string)
-    return re.sub('https?://\S+', '', msg)
+    return re.sub('https?://[\S\d\?&\+]+', '', msg)
 
 def set_duplicate(msg, latest_messages): pass #TODO:
 def any_images_are_duplicate(msg, latest_messages): 
@@ -61,8 +61,8 @@ def any_images_are_duplicate(msg, latest_messages):
             latest_images = [f['bytes'] for message in latest_messages for f in message.value['files'] if f['as_image'] == True]
             res = structural_similarity(file['bytes'], latest_images)
             if res:
-                key = lambda x: int(re.search(r'media/duplicate(\d+)_[1|2].jpg', x).group(1))
-                glob_result = glob.glob('media/duplicate*_*.jpg')
+                key = lambda x: int(re.search(r'media/duplicate_(\d+)_[1|2].jpg', x).group(1))
+                glob_result = glob.glob('media/duplicate_*_*.jpg')
                 max_duplicate_index = max([0, *[key(file) for file in glob_result]])
                 new_index = max_duplicate_index + 1
                 os.makedirs('media', exist_ok=True)

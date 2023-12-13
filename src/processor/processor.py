@@ -66,6 +66,7 @@ consumer = KafkaConsumer(GATHERING_TOPIC, bootstrap_servers=KAFKA_SERVER,
                          value_deserializer = lambda v: pickle.loads(v),
                         #  value_deserializer = lambda v: json.loads(v.decode('utf-8')),
                         #  auto_offset_reset='earliest', 
+                         session_timeout_ms=100000, heartbeat_interval_ms=50000,
                          enable_auto_commit=True,
                          group_id=GROUP_ID,                         
                          )
@@ -164,10 +165,10 @@ def handle_produce_msg(in_msg):
         latest_messages.append(in_msg)
     while len(latest_messages) > cfg.get('max_latest_messages', 1000):
         latest_messages.pop(0)
-def update_history():
+def update_history(timeout=100):
     logger.info('Updating history')
     raw_messages = history_produced_consumer.poll(
-        timeout_ms=100, 
+        timeout_ms=timeout, 
         # max_records=200
     )
     for topic_partition, messages in raw_messages.items():
@@ -182,8 +183,10 @@ def main(event=None):
     logger.info("Start listening to MESSAGES")
     num_sent_messages = 0
     num_ignored_messages = 0
+    update_history(10000)
 
-    for in_msg in consumer:        
+    for in_msg in consumer:
+        logger.info('Message retrieved')
         if event and event.is_set():
             break
         
@@ -193,11 +196,13 @@ def main(event=None):
             handle_control_msg(in_msg)
         
         elif in_msg.topic == GATHERING_TOPIC:
+            # pass
             handle_gathering_msg(in_msg)
         
         else:
             logging.error(f'Got unkown msg topic: {in_msg}')
-                
+        
+        logger.info('Waiting for next message')
     logger.warning('Stopped for some reason')
     producer.send(CONTROL_TOPIC, {MYNAME : 'going offline'})
 

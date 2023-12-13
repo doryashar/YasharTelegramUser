@@ -16,7 +16,7 @@ models = [
     ]
 
 model_name = 'sentence-transformers/all-mpnet-base-v2'
-default_threshold = 0.6
+default_threshold = 0.7
 
 def verify_model(model_name):
     model = SentenceTransformer(model_name, device="cpu")
@@ -52,7 +52,16 @@ if __name__ == '__main__':
   from googletrans import Translator
   trans = Translator()
   arr = [
+    "Arab report: pro-Iranian militias attacked the base of American forces in Syria",
+    "The air force attacks in southern Lebanon,",
     
+      """Amit Segal reports:
+
+The security measure being tested in Israel in coordination with Egypt: placing our security personnel on the Egyptian side of the Rafah crossing, to prevent the escape of Hamas leaders and the smuggling of hostages
+""",
+      """☄️ Heavy exchanges of fire in the Gaza Strip -
+At the same time, the IDF is in a wave of attacks."""]
+  
 #     """   The damage to the ship near Bab Almandav - near the coast of Yemen
 
 # US Central Command updates: The tanker Strinda was hit by a cruise missile fired at it from territory controlled by the Houthis while it was passing by the Bab Almandab Straits.
@@ -65,14 +74,15 @@ if __name__ == '__main__':
 # US Central Command updates: The tanker Strinda was hit by a cruise missile fired at it from territory controlled by the Houthis while it was passing by the Bab Almandab Straits.
 # A fire broke out on board the tanker following the attack, but there were no reports of casualties.
 # The attack was carried out while there were no US Navy vessels in the area, but the destroyer USS Mayson responded to the tanker's distress call., """
-    'זה אדם שמח',
-    'האיש הזה לא מפסיק לחייך', 
-    'הוא מאושר',
-    'איזה אדם אגדה',
-    'חבר יקר ביקש לשאול לשלומך',
-    'עוד אחד שבא להרים',
-    'אח שלי אוהב שוקולד'
-  ]
+
+  #   'זה אדם שמח',
+  #   'האיש הזה לא מפסיק לחייך', 
+  #   'הוא מאושר',
+  #   'איזה אדם אגדה',
+  #   'חבר יקר ביקש לשאול לשלומך',
+  #   'עוד אחד שבא להרים',
+  #   'אח שלי אוהב שוקולד'
+  # ]
   arr = [t.text for t in trans.translate(arr, src='he', dest='en')]
   for model_name in models:   
       # Expected is: #  Highest, Highest, Low, Lowest, Lowest, Lowest
