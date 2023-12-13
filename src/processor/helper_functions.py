@@ -1,4 +1,5 @@
 import re, glob
+import os
 from datetime import datetime
 from .sentence_similarity import text_similarity_check
 from .image_similarity import structural_similarity
@@ -64,6 +65,7 @@ def any_images_are_duplicate(msg, latest_messages):
                 glob_result = glob.glob('media/duplicate*_*.jpg')
                 max_duplicate_index = max([0, *[key(file) for file in glob_result]])
                 new_index = max_duplicate_index + 1
+                os.makedirs('media', exist_ok=True)
                 with open(f'media/duplicate_{new_index}_1.jpg', 'wb') as f:
                     f.write(file['bytes'])
                 with open(f'media/duplicate_{new_index}_2.jpg', 'wb') as f:
